@@ -1,0 +1,6 @@
+*.exe
+*.bak
+obj/
+bin/
+图记数据/
+node_modules/
