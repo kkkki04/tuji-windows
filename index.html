@@ -450,18 +450,42 @@
     padding: 28px 24px 20px;
   }
   .lightbox.open { display: flex; }
-  .lb-stage { position: relative; display: flex; align-items: center; justify-content: center; max-width: 100%; flex: 1; min-height: 0; }
+  .lb-stage { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; max-width: 100%; flex: 1; min-height: 0; }
+  .lb-canvas {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
   .lb-stage img {
     max-width: min(1100px, 88vw); max-height: 72vh;
     object-fit: contain; border-radius: 8px;
     box-shadow: 0 20px 60px rgba(0,0,0,.5);
     background: #111;
+    transform-origin: center center; will-change: transform;
+    user-select: none; -webkit-user-drag: none;
+    cursor: zoom-in;
   }
+  .lb-stage img.zoomed { cursor: grab; }
+  .lb-stage img.dragging { cursor: grabbing; }
+  .lb-zoom {
+    position: absolute; top: 8px; left: 8px; z-index: 4;
+    display: flex; align-items: center; gap: 2px; padding: 3px;
+    border-radius: 999px; background: rgba(0,0,0,.5);
+    border: 1px solid rgba(255,255,255,.18);
+    backdrop-filter: blur(4px);
+  }
+  .lb-zoom button {
+    height: 30px; min-width: 30px; padding: 0 8px; border: 0; border-radius: 999px;
+    background: transparent; color: #fff; font-size: 15px; cursor: pointer;
+    display: grid; place-items: center; font-family: inherit;
+  }
+  .lb-zoom button:hover { background: rgba(255,255,255,.16); }
+  .lb-zoom #lb-zoom-reset { min-width: 56px; font-size: 12.5px; color: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
   .lb-nav {
     position: absolute; top: 50%; transform: translateY(-50%);
     width: 44px; height: 44px; border-radius: 50%;
     border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.35); color: #fff;
     font-size: 20px; cursor: pointer; display: grid; place-items: center;
+    z-index: 3;
   }
   .lb-nav:hover { background: rgba(255,255,255,.15); }
   .lb-nav.prev { left: -8px; }
@@ -880,8 +904,15 @@
   <button class="lb-close" id="lb-close" title="关闭">×</button>
   <div class="lb-stage">
     <button class="lb-nav prev" id="lb-prev" title="上一张">‹</button>
-    <img id="lb-img" alt="">
+    <div class="lb-canvas" id="lb-canvas">
+      <img id="lb-img" alt="">
+    </div>
     <button class="lb-nav next" id="lb-next" title="下一张">›</button>
+    <div class="lb-zoom" role="group" aria-label="图片缩放">
+      <button type="button" id="lb-zoom-out" title="缩小（-）">−</button>
+      <button type="button" id="lb-zoom-reset" title="重置为 100%（0）">100%</button>
+      <button type="button" id="lb-zoom-in" title="放大（+）">＋</button>
+    </div>
   </div>
   <div class="lb-info">
     <h3 id="lb-name"></h3>
@@ -891,6 +922,8 @@
       <button class="btn" id="lb-edit">编辑 / 裁剪</button>
       <button class="btn" id="lb-copy">复制图片</button>
       <button class="btn" id="lb-copy-text">复制文字</button>
+      <button class="btn" id="lb-move-folder">移动到文件夹</button>
+      <button class="btn" id="lb-move-group">移动到分组</button>
       <button class="btn" id="lb-done">标记完成</button>
       <button class="btn" id="lb-delete">删除这张</button>
     </div>
@@ -2600,6 +2633,7 @@ async function moveSelectedTo(groupId) {
   state.selected.clear();
   closeMoveModal();
   render();
+  if (state.lbId && list.some(i => i.id === state.lbId)) closeLightbox();
   toast('已把 ' + list.length + ' 张移动到「' + groupById(groupId).name + '」', 'success');
 }
 
@@ -2658,6 +2692,7 @@ async function moveImagesToFolder(folderId) {
   state.selected.clear();
   closeImageFolderMoveModal();
   render();
+  if (state.lbId && list.some(i => i.id === state.lbId)) closeLightbox();
   toast('已把 ' + list.length + ' 张移动到「' + targetFolder.name + ' / ' + group.name + '」', 'success');
 }
 
@@ -2893,16 +2928,9 @@ async function normalizeImageFile(file) {
   }
 }
 
-function targetGroupForFolder(folderId) {
-  const list = groupsOf(folderId);
-  const remembered = state.groupMap[folderId];
-  if (remembered && list.some(g => g.id === remembered)) return remembered;
-  return list[0] ? list[0].id : '';
-}
-
 async function ensureGroupForFolder(folderId) {
   const existing = targetGroupForFolder(folderId);
-  if (existing) return existing;
+  if (existing) return existing.id;
   const group = { id: uid(), name: '默认分组', created: Date.now(), folderId };
   state.groups.push(group);
   await saveGroups();
@@ -2926,9 +2954,13 @@ async function addFiles(fileList, options = {}) {
     return { added: 0 };
   }
 
-  let targetGroupId = options.groupId && groupsOf(targetFolderId).some(g => g.id === options.groupId)
-    ? options.groupId
-    : targetGroupForFolder(targetFolderId);
+  let targetGroupId = '';
+  if (options.groupId && groupsOf(targetFolderId).some(g => g.id === options.groupId)) {
+    targetGroupId = options.groupId;
+  } else {
+    const group = targetGroupForFolder(targetFolderId);
+    targetGroupId = group ? group.id : '';
+  }
   if (!targetGroupId) {
     try {
       targetGroupId = await ensureGroupForFolder(targetFolderId);
@@ -4397,6 +4429,8 @@ function textDialog({ title = '输入名称', message = '', value = '', placehol
 /* ================= 预览 ================= */
 function openLightbox(id) {
   state.lbId = id;
+  lbZoom.id = id;
+  resetLightboxZoom();
   renderLightbox();
   $('#lightbox').classList.add('open');
   document.body.classList.add('no-scroll');
@@ -4404,6 +4438,8 @@ function openLightbox(id) {
 
 function closeLightbox() {
   if (cropOpen()) closeCrop();
+  resetLightboxZoom();
+  lbZoom.id = null;
   $('#lightbox').classList.remove('open');
   document.body.classList.remove('no-scroll');
   state.lbId = null;
@@ -4421,6 +4457,12 @@ function renderLightbox() {
   $('#lb-meta').textContent = fmtDate(item.created, 'long') + ' · ' + fmtSize(item.blob.size) +
     ' · ' + groupById(item.group).name + (item.done ? ' · 已完成' : '');
   $('#lb-done').textContent = item.done ? '取消完成' : '标记完成';
+  if (lbZoom.id !== item.id) {
+    lbZoom.id = item.id;
+    resetLightboxZoom();
+  } else {
+    applyLightboxZoom();
+  }
 }
 
 function lightboxStep(delta) {
@@ -4429,7 +4471,127 @@ function lightboxStep(delta) {
   const index = list.findIndex(i => i.id === state.lbId);
   if (index < 0) return;
   state.lbId = list[(index + delta + list.length) % list.length].id;
+  lbZoom.id = null;
   renderLightbox();
+}
+
+/* ---------- 大图缩放 / 拖动 ---------- */
+const lbZoom = {
+  scale: 1, min: 0.2, max: 6, x: 0, y: 0, id: null,
+  dragging: false, startX: 0, startY: 0
+};
+
+function clampLightboxPan() {
+  const img = $('#lb-img');
+  const canvas = $('#lb-canvas');
+  if (!img || !canvas) return;
+  const maxX = Math.max(0, (img.offsetWidth * lbZoom.scale - canvas.clientWidth) / 2);
+  const maxY = Math.max(0, (img.offsetHeight * lbZoom.scale - canvas.clientHeight) / 2);
+  lbZoom.x = clamp(lbZoom.x, -maxX, maxX);
+  lbZoom.y = clamp(lbZoom.y, -maxY, maxY);
+}
+
+function applyLightboxZoom() {
+  const img = $('#lb-img');
+  if (!img) return;
+  lbZoom.scale = clamp(lbZoom.scale, lbZoom.min, lbZoom.max);
+  clampLightboxPan();
+  img.style.transform = 'translate(' + lbZoom.x.toFixed(2) + 'px, ' + lbZoom.y.toFixed(2) +
+    'px) scale(' + lbZoom.scale.toFixed(4) + ')';
+  img.classList.toggle('zoomed', lbZoom.scale > 1.01);
+  const label = $('#lb-zoom-reset');
+  if (label) label.textContent = Math.round(lbZoom.scale * 100) + '%';
+}
+
+function resetLightboxZoom() {
+  lbZoom.scale = 1;
+  lbZoom.x = 0;
+  lbZoom.y = 0;
+  lbZoom.dragging = false;
+  const img = $('#lb-img');
+  if (img) img.classList.remove('dragging');
+  applyLightboxZoom();
+}
+
+function setLightboxZoom(next, clientX, clientY) {
+  const img = $('#lb-img');
+  const canvas = $('#lb-canvas');
+  if (!img || !canvas) return;
+  const prev = lbZoom.scale;
+  const scale = clamp(next, lbZoom.min, lbZoom.max);
+  if (Math.abs(scale - prev) < 0.0001) return;
+  if (typeof clientX === 'number' && typeof clientY === 'number') {
+    const rect = canvas.getBoundingClientRect();
+    const cx = clientX - (rect.left + rect.width / 2);
+    const cy = clientY - (rect.top + rect.height / 2);
+    const ratio = scale / prev;
+    lbZoom.x = cx - (cx - lbZoom.x) * ratio;
+    lbZoom.y = cy - (cy - lbZoom.y) * ratio;
+  }
+  lbZoom.scale = scale;
+  applyLightboxZoom();
+}
+
+function bindLightboxZoom() {
+  const img = $('#lb-img');
+  const canvas = $('#lb-canvas');
+  if (!img || !canvas) return;
+
+  $('#lb-zoom-in').addEventListener('click', e => {
+    e.stopPropagation();
+    setLightboxZoom(lbZoom.scale * 1.25);
+  });
+  $('#lb-zoom-out').addEventListener('click', e => {
+    e.stopPropagation();
+    setLightboxZoom(lbZoom.scale / 1.25);
+  });
+  $('#lb-zoom-reset').addEventListener('click', e => {
+    e.stopPropagation();
+    resetLightboxZoom();
+  });
+
+  canvas.addEventListener('wheel', e => {
+    if (!$('#lightbox').classList.contains('open') || cropOpen()) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    setLightboxZoom(lbZoom.scale * factor, e.clientX, e.clientY);
+  }, { passive: false });
+
+  img.addEventListener('load', () => applyLightboxZoom());
+  img.addEventListener('dblclick', e => {
+    e.preventDefault();
+    if (lbZoom.scale > 1.01) resetLightboxZoom();
+    else setLightboxZoom(2, e.clientX, e.clientY);
+  });
+
+  img.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || lbZoom.scale <= 1.01) return;
+    e.preventDefault();
+    lbZoom.dragging = true;
+    lbZoom.startX = e.clientX - lbZoom.x;
+    lbZoom.startY = e.clientY - lbZoom.y;
+    img.classList.add('dragging');
+    try { img.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  img.addEventListener('pointermove', e => {
+    if (!lbZoom.dragging) return;
+    e.preventDefault();
+    lbZoom.x = e.clientX - lbZoom.startX;
+    lbZoom.y = e.clientY - lbZoom.startY;
+    applyLightboxZoom();
+  });
+  const endDrag = e => {
+    if (!lbZoom.dragging) return;
+    lbZoom.dragging = false;
+    img.classList.remove('dragging');
+    try { img.releasePointerCapture(e.pointerId); } catch (err) {}
+  };
+  img.addEventListener('pointerup', endDrag);
+  img.addEventListener('pointercancel', endDrag);
+
+  window.addEventListener('resize', () => {
+    if ($('#lightbox').classList.contains('open')) applyLightboxZoom();
+  });
 }
 
 /* ================= 裁剪编辑 ================= */
@@ -4810,7 +4972,7 @@ async function saveCrop() {
 
     closeCrop();
     render();
-    if (state.lbId === item.id) renderLightbox();
+    if (state.lbId === item.id) { lbZoom.id = null; renderLightbox(); }
     if (oldUrl) URL.revokeObjectURL(oldUrl);
     toast('已保存裁剪', 'success');
   } catch (err) {
@@ -5823,6 +5985,7 @@ function bindEvents() {
   $('#lb-close').addEventListener('click', closeLightbox);
   $('#lb-prev').addEventListener('click', () => lightboxStep(-1));
   $('#lb-next').addEventListener('click', () => lightboxStep(1));
+  bindLightboxZoom();
   $('#lb-edit').addEventListener('click', () => {
     const item = state.items.find(i => i.id === state.lbId);
     if (item) openCrop(item.id);
@@ -5835,6 +5998,14 @@ function bindEvents() {
     const item = state.items.find(i => i.id === state.lbId);
     if (item) copyText([item]);
   });
+  $('#lb-move-folder').addEventListener('click', () => {
+    const item = state.items.find(i => i.id === state.lbId);
+    if (item) openImageFolderMoveModal([item]);
+  });
+  $('#lb-move-group').addEventListener('click', () => {
+    const item = state.items.find(i => i.id === state.lbId);
+    if (item) openMoveModal([item]);
+  });
   $('#lb-done').addEventListener('click', () => {
     const item = state.items.find(i => i.id === state.lbId);
     if (item) setDone([item], !item.done);
@@ -5843,7 +6014,9 @@ function bindEvents() {
     const item = state.items.find(i => i.id === state.lbId);
     if (item) await deleteItems([item]);
   });
-  $('#lightbox').addEventListener('click', e => { if (e.target === $('#lightbox')) closeLightbox(); });
+  $('#lightbox').addEventListener('click', e => {
+    if (e.target === $('#lightbox') || e.target === $('#lb-canvas')) closeLightbox();
+  });
 
   // 裁剪
   $('#crop-cancel').addEventListener('click', closeCrop);
@@ -5872,6 +6045,9 @@ function bindEvents() {
       if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowLeft') { e.preventDefault(); lightboxStep(-1); }
       if (e.key === 'ArrowRight') { e.preventDefault(); lightboxStep(1); }
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); setLightboxZoom(lbZoom.scale * 1.25); }
+      if (e.key === '-' || e.key === '_') { e.preventDefault(); setLightboxZoom(lbZoom.scale / 1.25); }
+      if (e.key === '0') { e.preventDefault(); resetLightboxZoom(); }
     } else if (e.key === 'Escape' && $('#share-modal').classList.contains('open')) {
       closeShare();
     } else if (e.key === 'Escape' && $('#image-folder-move-modal').classList.contains('open')) {
