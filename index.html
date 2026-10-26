@@ -202,6 +202,13 @@
     border-color: var(--accent); background: #f8fcfb;
     box-shadow: 0 0 0 3px rgba(15,118,110,.18), 0 8px 22px rgba(15,118,110,.1);
   }
+  .folder-card.picked {
+    border-color: var(--accent); background: #eefaf7;
+    box-shadow: 0 0 0 3px rgba(15,118,110,.18), 0 8px 22px rgba(15,118,110,.1);
+  }
+  .folder-card.picked .folder-name::before {
+    content: '✓ '; color: var(--accent); font-weight: 700;
+  }
   .folder-card.drop-target {
     border-color: var(--accent); background: #eefaf7;
     outline: 2px dashed var(--accent); outline-offset: 3px;
@@ -639,6 +646,14 @@
   .view-switch button:hover { color: var(--ink); }
   .view-switch button.on { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 
+  .sort-box { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+  .sort-box select {
+    height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; color: var(--ink); font-family: inherit; font-size: 12.5px;
+    cursor: pointer; outline: none;
+  }
+  .sort-box select:focus { border-color: var(--accent); }
+
   /* ---------------- 分组标签页（Excel 风格） ---------------- */
   .groupbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 58;
@@ -799,7 +814,7 @@
     </div>
 
     <div class="head-actions">
-      <button class="btn manage-btn" id="btn-manage" title="管理：批量选择、复制、导出">管理</button>
+      <button class="btn manage-btn" id="btn-manage" title="管理：批量选择图片/文件夹、复制、导出">管理</button>
       <button class="btn primary" id="btn-add">＋ 添加图片</button>
       <button class="btn" id="btn-share">分享到微信</button>
       <button class="btn" id="btn-backup" title="导出 / 导入全部数据">备份</button>
@@ -839,6 +854,16 @@
       <button type="button" data-filter="all" class="on">全部</button>
       <button type="button" data-filter="todo">未完成</button>
       <button type="button" data-filter="done">已完成</button>
+    </div>
+    <div class="sort-box">
+      <span class="view-caption">排序</span>
+      <select id="sort-select" aria-label="排序方式">
+        <option value="default">默认排序</option>
+        <option value="name-asc">名称 ↑</option>
+        <option value="name-desc">名称 ↓</option>
+        <option value="date-desc">日期 新→旧</option>
+        <option value="date-asc">日期 旧→新</option>
+      </select>
     </div>
     <div class="view-size">
       <span class="view-caption">视图</span>
@@ -1186,9 +1211,11 @@ const state = {
   groupMap: {},       // folderId -> 上次所在分组 id
   group: '',          // 当前分组 id
   doneFilter: 'all',  // all | todo | done
-  manage: false,      // 管理模式：点图片选中，顶部显示批量操作
+  manage: false,      // 管理模式：点图片或文件夹选中，顶部显示批量操作
   view: 'standard',   // compact | standard | loose
+  sort: 'default',    // default | name-asc | name-desc | date-desc | date-asc
   selected: new Set(),
+  selectedFolders: new Set(),
   search: '',
   urls: new Map(),    // id -> objectURL
   timers: new Map(),  // id -> 保存定时器
@@ -1293,15 +1320,55 @@ function sortItems() {
   state.items.sort((a, b) => ((b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)) || (b.created - a.created));
 }
 
+const SORT_MODES = ['default', 'name-asc', 'name-desc', 'date-desc', 'date-asc'];
+const SORT_COLLATOR = new Intl.Collator('zh-Hans-CN', { numeric: true, sensitivity: 'base' });
+
+function sortName(value) {
+  return String(value || '').trim() || '未命名';
+}
+
+function sortImageList(list) {
+  const mode = SORT_MODES.includes(state.sort) ? state.sort : 'default';
+  if (mode === 'default') return list;
+  const arr = list.slice();
+  if (mode === 'name-asc') {
+    arr.sort((a, b) => SORT_COLLATOR.compare(sortName(a.name), sortName(b.name)) || ((b.created || 0) - (a.created || 0)));
+  } else if (mode === 'name-desc') {
+    arr.sort((a, b) => SORT_COLLATOR.compare(sortName(b.name), sortName(a.name)) || ((b.created || 0) - (a.created || 0)));
+  } else if (mode === 'date-desc') {
+    arr.sort((a, b) => ((b.created || 0) - (a.created || 0)) || SORT_COLLATOR.compare(sortName(a.name), sortName(b.name)));
+  } else if (mode === 'date-asc') {
+    arr.sort((a, b) => ((a.created || 0) - (b.created || 0)) || SORT_COLLATOR.compare(sortName(a.name), sortName(b.name)));
+  }
+  return arr;
+}
+
+function sortFolderList(list) {
+  const mode = SORT_MODES.includes(state.sort) ? state.sort : 'default';
+  const arr = list.slice();
+  if (mode === 'name-asc') {
+    arr.sort((a, b) => SORT_COLLATOR.compare(sortName(a.name), sortName(b.name)) || ((a.created || 0) - (b.created || 0)));
+  } else if (mode === 'name-desc') {
+    arr.sort((a, b) => SORT_COLLATOR.compare(sortName(b.name), sortName(a.name)) || ((a.created || 0) - (b.created || 0)));
+  } else if (mode === 'date-desc') {
+    arr.sort((a, b) => ((b.created || 0) - (a.created || 0)));
+  } else {
+    arr.sort((a, b) => ((a.created || 0) - (b.created || 0)));
+  }
+  return arr;
+}
+
 function visibleItems() {
   let list = groupItems(state.group);
   if (state.doneFilter === 'todo') list = list.filter(i => !i.done);
   else if (state.doneFilter === 'done') list = list.filter(i => i.done);
   const q = state.search.trim().toLowerCase();
-  if (!q) return list;
-  return list.filter(i =>
-    (i.name || '').toLowerCase().includes(q) || (i.note || '').toLowerCase().includes(q)
-  );
+  if (q) {
+    list = list.filter(i =>
+      (i.name || '').toLowerCase().includes(q) || (i.note || '').toLowerCase().includes(q)
+    );
+  }
+  return sortImageList(list);
 }
 
 function folderCounts(folderId) {
@@ -1322,13 +1389,63 @@ function visibleFolders(parentId) {
   if (state.folderFilter === 'fav') list = list.filter(f => f.favorite);
   const q = state.search.trim().toLowerCase();
   if (q) list = list.filter(f => (f.name || '').toLowerCase().includes(q));
-  return list.sort((a, b) => (a.created || 0) - (b.created || 0));
+  return sortFolderList(list);
 }
 
-// 操作对象：有选中就只操作选中的，否则操作当前显示的
+function descendantFolderIds(folderIds) {
+  const ids = new Set();
+  const walk = id => {
+    if (!id || ids.has(id)) return;
+    ids.add(id);
+    for (const folder of state.folders) {
+      if (folder.parentId === id) walk(folder.id);
+    }
+  };
+  for (const id of folderIds || []) walk(id);
+  return ids;
+}
+
+function imagesInFolders(folderIds) {
+  const fids = descendantFolderIds(folderIds);
+  if (!fids.size) return [];
+  const gids = new Set(state.groups.filter(g => fids.has(g.folderId)).map(g => g.id));
+  return state.items.filter(i => gids.has(i.group));
+}
+
+// 操作对象：有选中就只操作选中的；选中文件夹时包含其子文件夹
 function targets() {
-  if (state.selected.size) return state.items.filter(i => state.selected.has(i.id));
+  if (state.selected.size || state.selectedFolders.size) {
+    const seen = new Set();
+    const list = [];
+    for (const item of state.items) {
+      if (!state.selected.has(item.id) || seen.has(item.id)) continue;
+      seen.add(item.id);
+      list.push(item);
+    }
+    for (const item of imagesInFolders(state.selectedFolders)) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      list.push(item);
+    }
+    return sortImageList(list);
+  }
+  if (state.atRoot) return [];
   return visibleItems();
+}
+
+function exportLabelForList(list) {
+  if (state.selectedFolders.size) {
+    if (state.selectedFolders.size === 1) {
+      const folder = folderById(Array.from(state.selectedFolders)[0]);
+      return folder ? folder.name : '文件夹';
+    }
+    return state.selectedFolders.size + ' 个文件夹';
+  }
+  if (list.length && list.every(i => i.group === list[0].group)) {
+    return groupById(list[0].group).name;
+  }
+  if (list.length) return '多个分组';
+  return currentGroup().name;
 }
 
 function getUrl(item) {
@@ -1482,7 +1599,9 @@ function render() {
     $('#folder-total').textContent = state.folders.length;
     $('#folder-visible').textContent = '本层 ' + folders.length + ' 个';
     $('#folder-fav-total').textContent = '收藏 ' + state.folders.filter(f => f.favorite).length + ' 个';
-    $('#selbar').classList.remove('show');
+    updateSelectionBar();
+    const allFolders = folders.length > 0 && folders.every(f => state.selectedFolders.has(f.id));
+    $('#btn-select-all').textContent = allFolders ? '取消全选' : '全选';
     return;
   }
 
@@ -1564,9 +1683,17 @@ function updateNav() {
 function updateScope() {
   const scope = $('#scope');
   if (state.manage) {
-    scope.textContent = state.selected.size
-      ? '管理模式 · 已选 ' + state.selected.size + ' 张'
-      : '管理模式 · 点图片选中，或点「全选」';
+    const picked = state.selectedFolders.size;
+    const imgs = state.selected.size;
+    if (picked) {
+      const total = targets().length;
+      scope.textContent = '管理模式 · 已选 ' + picked + ' 个文件夹（含子文件夹）' +
+        (imgs ? ' + ' + imgs + ' 张图片' : '') + ' · 共 ' + total + ' 张';
+    } else {
+      scope.textContent = imgs
+        ? '管理模式 · 已选 ' + imgs + ' 张'
+        : '管理模式 · 点图片或文件夹选中，或点「全选」';
+    }
   } else if (state.search.trim() || state.doneFilter !== 'all') {
     scope.textContent = '操作范围：筛选结果 ' + visibleItems().length + ' 张';
   } else {
@@ -1575,16 +1702,15 @@ function updateScope() {
 }
 
 function setManage(on) {
-  if (on && state.atRoot) {
-    toast('先双击进入一个文件夹，再管理图片', 'error');
-    return;
-  }
   state.manage = !!on;
-  if (!state.manage) state.selected.clear();
+  if (!state.manage) {
+    state.selected.clear();
+    state.selectedFolders.clear();
+  }
   document.body.classList.toggle('manage', state.manage);
   const btn = $('#btn-manage');
   btn.textContent = state.manage ? '完成' : '管理';
-  btn.title = state.manage ? '退出管理模式' : '管理：批量选择、复制、导出';
+  btn.title = state.manage ? '退出管理模式' : '管理：批量选择图片/文件夹、复制、导出';
   btn.setAttribute('aria-pressed', state.manage ? 'true' : 'false');
   render();
 }
@@ -1601,11 +1727,35 @@ function setView(view) {
   try { localStorage.setItem('picnote-view', v); } catch (err) {}
 }
 
+function setSort(mode, persist = true) {
+  const value = SORT_MODES.includes(mode) ? mode : 'default';
+  state.sort = value;
+  const select = $('#sort-select');
+  if (select) select.value = value;
+  if (persist) {
+    try { localStorage.setItem('picnote-sort', value); } catch (err) {}
+  }
+  render();
+}
+
 function updateSelectionBar() {
   const bar = $('#selbar');
-  bar.classList.toggle('show', state.manage && state.selected.size > 0);
-  $('#sel-count').textContent = '已选 ' + state.selected.size + ' 张';
-  if (state.selected.size) {
+  const picked = state.selectedFolders.size;
+  const imgs = state.selected.size;
+  bar.classList.toggle('show', state.manage && (picked > 0 || imgs > 0));
+  if (picked) {
+    const total = targets().length;
+    $('#sel-count').textContent = '已选 ' + picked + ' 个文件夹（含子文件夹）' +
+      (imgs ? ' + ' + imgs + ' 张' : '') + ' · 共 ' + total + ' 张';
+  } else {
+    $('#sel-count').textContent = '已选 ' + imgs + ' 张';
+  }
+  const imageOnly = picked > 0;
+  for (const id of ['#sel-done', '#sel-move-folder', '#sel-move', '#sel-delete']) {
+    const btn = $(id);
+    if (btn) btn.style.display = imageOnly ? 'none' : '';
+  }
+  if (!picked && imgs) {
     const sel = state.items.filter(i => state.selected.has(i.id));
     const allDone = sel.length > 0 && sel.every(i => i.done);
     $('#sel-done').textContent = allDone ? '标记未完成' : '标记完成';
@@ -1913,20 +2063,35 @@ function resetSearchAndFilter() {
 function resetManageState() {
   state.manage = false;
   state.selected.clear();
+  state.selectedFolders.clear();
   document.body.classList.remove('manage');
   const btn = $('#btn-manage');
   if (btn) {
     btn.textContent = '管理';
-    btn.title = '管理：批量选择、复制、导出';
+    btn.title = '管理：批量选择图片/文件夹、复制、导出';
     btn.setAttribute('aria-pressed', 'false');
   }
 }
 
 function selectFolder(id) {
   state.selectedFolder = id || '';
+  if (state.manage) return;
   $$('#folder-grid .folder-card').forEach(card => {
     card.classList.toggle('selected', card.dataset.id === state.selectedFolder);
   });
+}
+
+function toggleFolderSelection(id) {
+  if (!state.manage || !id) return;
+  if (state.selectedFolders.has(id)) state.selectedFolders.delete(id);
+  else state.selectedFolders.add(id);
+  $$('#folder-grid .folder-card, #subfolder-grid .folder-card').forEach(card => {
+    card.classList.toggle('picked', state.selectedFolders.has(card.dataset.id));
+  });
+  updateSelectionBar();
+  const visible = visibleFolders(state.atRoot ? '' : state.folder);
+  const all = visible.length > 0 && visible.every(f => state.selectedFolders.has(f.id));
+  $('#btn-select-all').textContent = all ? '取消全选' : '全选';
 }
 
 function updateFolderFilterUI() {
@@ -1970,12 +2135,13 @@ function renderSubfolders() {
 
 function buildFolderCard(folder) {
   const counts = folderCounts(folder.id);
+  const picked = state.manage && state.selectedFolders.has(folder.id);
   const card = el('article', {
-    class: 'folder-card' + (state.selectedFolder === folder.id ? ' selected' : ''),
+    class: 'folder-card' + (!state.manage && state.selectedFolder === folder.id ? ' selected' : '') + (picked ? ' picked' : ''),
     tabindex: '0',
     role: 'button',
-    'aria-label': folder.name + '，双击进入',
-    title: '双击进入「' + folder.name + '」',
+    'aria-label': state.manage ? folder.name + '，点击选中文件夹' : folder.name + '，双击进入',
+    title: state.manage ? '点击选中 / 取消「' + folder.name + '」' : '双击进入「' + folder.name + '」',
     dataset: { id: folder.id }
   });
 
@@ -2037,13 +2203,21 @@ function buildFolderCard(folder) {
 
   card.addEventListener('click', e => {
     if (e.target.closest('.folder-actions')) return;
+    if (state.manage) {
+      if (e.detail <= 1) toggleFolderSelection(folder.id);
+      return;
+    }
     selectFolder(folder.id);
   });
   card.addEventListener('dblclick', e => {
-    if (e.target.closest('.folder-actions')) return;
+    if (state.manage || e.target.closest('.folder-actions')) return;
     enterFolder(folder.id);
   });
   card.addEventListener('keydown', e => {
+    if (state.manage) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFolderSelection(folder.id); }
+      return;
+    }
     if (e.key === 'Enter') { e.preventDefault(); enterFolder(folder.id); }
     else if (e.key === ' ') { e.preventDefault(); selectFolder(folder.id); }
   });
@@ -2346,6 +2520,7 @@ async function deleteFolder(folder) {
   state.groups = state.groups.filter(g => g.folderId !== folder.id);
   delete state.groupMap[folder.id];
   if (state.selectedFolder === folder.id) state.selectedFolder = '';
+  state.selectedFolders.delete(folder.id);
 
   if (wasCurrent) {
     state.folder = state.folders[0].id;
@@ -3281,7 +3456,13 @@ async function handleExternalDrop(dataTransfer, folderId) {
 function requireTargets() {
   const list = targets();
   if (!list.length) {
-    toast(state.items.length ? '当前筛选下没有图片' : '请先添加图片', 'error');
+    if (state.manage && state.atRoot) {
+      toast('先选择要导出的文件夹，再点导出', 'error');
+    } else if (state.selectedFolders.size) {
+      toast('选中的文件夹里没有图片', 'error');
+    } else {
+      toast(state.items.length ? '当前筛选下没有图片' : '请先添加图片', 'error');
+    }
     return null;
   }
   return list;
@@ -3289,8 +3470,7 @@ function requireTargets() {
 
 function buildText(list) {
   const lines = [];
-  const g = currentGroup();
-  const groupName = list.length && list.every(i => i.group === list[0].group) ? groupById(list[0].group).name : g.name;
+  const groupName = exportLabelForList(list);
   lines.push('图记 · ' + groupName + ' · ' + fmtDate(Date.now(), 'day') + '（共 ' + list.length + ' 张）');
   lines.push('');
   list.forEach((item, i) => {
@@ -3613,7 +3793,7 @@ async function renderSheet(list) {
 
     ctx.fillStyle = '#7a7468';
     ctx.font = '400 19px ' + SHEET_FONT;
-    ctx.fillText('图片备注 · ' + currentGroup().name + ' · ' + list.length + ' 张 · ' + fmtDate(Date.now(), 'day'), PAD + 22, 126);
+    ctx.fillText('图片备注 · ' + exportLabelForList(list) + ' · ' + list.length + ' 张 · ' + fmtDate(Date.now(), 'day'), PAD + 22, 126);
 
     let y = SHEET.header;
     rows.forEach((row, ri) => {
@@ -3987,10 +4167,10 @@ async function exportSharePage(list) {
         });
       }
 
-      const html = buildShareDocument(payload, currentGroup().name);
+      const html = buildShareDocument(payload, exportLabelForList(list));
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
 
-      download(blob, '图记_' + safeName(currentGroup().name, '分享') + '_' + dateStamp() + '.html');
+      download(blob, '图记_' + safeName(exportLabelForList(list), '分享') + '_' + dateStamp() + '.html');
       if (blob.size > 30 * 1024 * 1024) {
         toast('已导出（' + fmtSize(blob.size) + '），文件较大，微信发送可能较慢', 'info');
       } else {
@@ -4167,7 +4347,7 @@ function buildPdf(pages) {
 async function exportPdf(list) {
   await withBusy('正在生成 PDF…', async () => {
     try {
-      const groupName = currentGroup().name;
+      const groupName = exportLabelForList(list);
       const pages = [];
       for (let i = 0; i < list.length; i++) {
         const page = await renderPdfPage(list[i], i, list.length, groupName);
@@ -4294,7 +4474,8 @@ async function exportZip(list) {
         console.warn('长图生成失败，ZIP 仍包含图片和备注', err);
       }
 
-      download(makeZip(files), '图记_' + safeName(currentGroup().name, '分享') + '_' + dateStamp() + '.zip');
+      const label = exportLabelForList(list);
+      download(makeZip(files), '图记_' + safeName(label, '分享') + '_' + dateStamp() + '.zip');
       toast('已导出 ' + list.length + ' 张图片 + 备注 + 分享长图', 'success');
     } catch (err) {
       console.error(err);
@@ -5919,8 +6100,20 @@ function bindEvents() {
     if (btn) setView(btn.dataset.view);
   });
 
+  // 排序
+  $('#sort-select').addEventListener('change', e => setSort(e.target.value));
+
   // 全选
   $('#btn-select-all').addEventListener('click', () => {
+    if (state.atRoot) {
+      const folders = visibleFolders('');
+      if (!folders.length) return;
+      const all = folders.every(f => state.selectedFolders.has(f.id));
+      if (all) folders.forEach(f => state.selectedFolders.delete(f.id));
+      else folders.forEach(f => state.selectedFolders.add(f.id));
+      render();
+      return;
+    }
     const visible = visibleItems();
     if (!visible.length) return;
     const all = visible.every(i => state.selected.has(i.id));
@@ -5953,6 +6146,7 @@ function bindEvents() {
   });
   $('#sel-clear').addEventListener('click', () => {
     state.selected.clear();
+    state.selectedFolders.clear();
     render();
   });
 
@@ -6117,6 +6311,14 @@ async function init() {
   let savedView = null;
   try { savedView = localStorage.getItem('picnote-view'); } catch (err) {}
   setView(savedView || 'standard');
+  let savedSort = 'default';
+  try {
+    const storedSort = localStorage.getItem('picnote-sort');
+    if (SORT_MODES.includes(storedSort)) savedSort = storedSort;
+  } catch (err) {}
+  state.sort = savedSort;
+  const sortSelect = $('#sort-select');
+  if (sortSelect) sortSelect.value = savedSort;
   try {
     const [items, savedGroups, savedFolders] = await Promise.all([
       dbAll(),
