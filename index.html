@@ -94,6 +94,19 @@
   .btn.danger { color: var(--danger); border-color: #f2cccc; }
   .btn.danger:hover { background: #fdf2f2; }
 
+  .undo-btn { gap: 5px; color: #5b6069; }
+  .undo-btn > svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+  .undo-btn:disabled { opacity: .32; }
+  .undo-btn.ready {
+    color: var(--accent-dark); border-color: #b9d8d4; background: #f2fbf9;
+  }
+  .undo-btn.ready:hover { background: #e6f7f4; border-color: #a4cfc9; }
+  .undo-btn.pulse { animation: undo-pulse .5s ease-out; }
+  @keyframes undo-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(15, 118, 110, .35); }
+    100% { box-shadow: 0 0 0 8px rgba(15, 118, 110, 0); }
+  }
+
   /* ---------------- 次栏 ---------------- */
   .subbar { padding-top: 0; padding-bottom: 12px; flex-wrap: wrap; gap: 10px; }
   .nav-history {
@@ -452,6 +465,7 @@
     padding: 4px 12px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600;
   }
   .toast-action:hover { background: rgba(255,255,255,.32); }
+  .toast-action:disabled { opacity: .5; cursor: default; }
   .toast-close { border: 0; background: transparent; color: rgba(255,255,255,.6); font-size: 16px; cursor: pointer; line-height: 1; padding: 0 2px; }
   @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
 
@@ -849,10 +863,14 @@
     </div>
 
     <div class="head-actions">
+      <button class="btn undo-btn" id="btn-undo" title="撤销（Ctrl+Z）" aria-label="撤销" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H9"></path></svg>
+        撤销
+      </button>
       <button class="btn manage-btn" id="btn-manage" title="管理：批量选择图片/文件夹、复制、导出">管理</button>
-      <button class="btn primary" id="btn-add">＋ 添加图片</button>
       <button class="btn" id="btn-share">分享到微信</button>
       <button class="btn" id="btn-backup" title="导出 / 导入全部数据">备份</button>
+      <button class="btn primary" id="btn-add">添加图片</button>
     </div>
   </header>
 
@@ -1247,6 +1265,7 @@ const state = {
   selected: new Set(),
   selectedFolders: new Set(),
   search: '',
+  lbNameBefore: null,
   urls: new Map(),    // id -> objectURL
   timers: new Map(),  // id -> 保存定时器
   lbId: null,
@@ -2797,12 +2816,22 @@ function updateCardName(item) {
 }
 
 async function toggleItemFav(item) {
-  item.fav = !item.fav;
+  const before = !!item.fav;
+  item.fav = !before;
   await saveNow(item);
   sortItems();
   render();
   if (state.lbId === item.id) renderLightbox();
-  toast(item.fav ? '已收藏' : '已取消收藏', 'info');
+  const name = (item.name || '').trim() || '未命名';
+  const undo = pushUndo(item.fav ? '收藏「' + name + '」' : '取消收藏「' + name + '」', async () => {
+    item.fav = before;
+    await saveNow(item);
+    sortItems();
+    render();
+    if (state.lbId === item.id) renderLightbox();
+    toast('已撤销收藏变化', 'success');
+  });
+  toast(item.fav ? '已收藏' : '已取消收藏', 'info', { label: '撤销', entry: undo, fn: () => runUndo(undo) });
 }
 
 async function setDone(items, done) {
@@ -2832,18 +2861,20 @@ async function setDone(items, done) {
     await saves;
   }
 
+  const undo = pushUndo(done ? '标记完成 ' + list.length + ' 张' : '取消完成 ' + list.length + ' 张', async () => {
+    for (const p of prev) {
+      p.item.done = p.done;
+      await saveNow(p.item);
+      updateCardDoneUI(p.item);
+    }
+    render();
+    if (state.lbId && prev.some(p => p.item.id === state.lbId)) renderLightbox();
+    toast('已撤销完成状态', 'success');
+  });
   toast(done ? '已标记完成 ' + list.length + ' 张' : '已标记未完成 ' + list.length + ' 张', 'success', {
     label: '撤销',
-    fn: async () => {
-      for (const p of prev) {
-        p.item.done = p.done;
-        await saveNow(p.item);
-        updateCardDoneUI(p.item);
-      }
-      render();
-      if (state.lbId && prev.some(p => p.item.id === state.lbId)) renderLightbox();
-      toast('已撤销', 'success');
-    }
+    entry: undo,
+    fn: () => runUndo(undo)
   });
 }
 
@@ -2900,16 +2931,18 @@ async function moveSelectedTo(groupId) {
   closeMoveModal();
   render();
   if (state.lbId && list.some(i => i.id === state.lbId)) closeLightbox();
+  const undo = pushUndo('移动 ' + list.length + ' 张到「' + groupById(groupId).name + '」', async () => {
+    for (const p of prev) {
+      p.item.group = p.group;
+      await saveNow(p.item);
+    }
+    render();
+    toast('已撤销移动', 'success');
+  });
   toast('已把 ' + list.length + ' 张移动到「' + groupById(groupId).name + '」', 'success', {
     label: '撤销',
-    fn: async () => {
-      for (const p of prev) {
-        p.item.group = p.group;
-        await saveNow(p.item);
-      }
-      render();
-      toast('已撤销移动', 'success');
-    }
+    entry: undo,
+    fn: () => runUndo(undo)
   });
 }
 
@@ -2970,16 +3003,18 @@ async function moveImagesToFolder(folderId) {
   closeImageFolderMoveModal();
   render();
   if (state.lbId && list.some(i => i.id === state.lbId)) closeLightbox();
+  const undo = pushUndo('移动 ' + list.length + ' 张到「' + targetFolder.name + '」', async () => {
+    for (const p of prev) {
+      p.item.group = p.group;
+      await saveNow(p.item);
+    }
+    render();
+    toast('已撤销移动', 'success');
+  });
   toast('已把 ' + list.length + ' 张移动到「' + targetFolder.name + ' / ' + group.name + '」', 'success', {
     label: '撤销',
-    fn: async () => {
-      for (const p of prev) {
-        p.item.group = p.group;
-        await saveNow(p.item);
-      }
-      render();
-      toast('已撤销移动', 'success');
-    }
+    entry: undo,
+    fn: () => runUndo(undo)
   });
 }
 
@@ -4631,8 +4666,15 @@ function toast(message, type = 'info', action = null) {
 
   if (action) {
     const btn = el('button', { class: 'toast-action', type: 'button' }, action.label);
-    btn.addEventListener('click', async () => { close(); try { await action.fn(); } catch (e) { console.error(e); } });
-    box.append(btn);
+    if (action.entry) {
+      action.entry.toastBtn = btn;
+      if (action.entry.done) { btn.textContent = '已撤销'; btn.disabled = true; }
+    }
+    btn.addEventListener('click', async () => {
+      if (action.entry && action.entry.done) { close(); return; }
+      close();
+      try { await action.fn(); } catch (e) { console.error(e); }
+    });    box.append(btn);
   }
 
   const closeBtn = el('button', { class: 'toast-close', type: 'button', title: '关闭' }, '×');
@@ -4640,7 +4682,73 @@ function toast(message, type = 'info', action = null) {
   box.append(closeBtn);
 
   $('#toasts').append(box);
+  while ($('#toasts').children.length > 3) $('#toasts').firstElementChild.remove();
   timer = setTimeout(close, action ? 12000 : 3400);
+}
+
+/* ================= 撤销 ================= */
+const undoStack = [];
+const UNDO_LIMIT = 30;
+let undoTimer = null;
+
+function pushUndo(label, fn) {
+  const entry = { label, fn, done: false, at: Date.now() };
+  undoStack.push(entry);
+  while (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  updateUndoButton(true);
+  return entry;
+}
+
+function latestUndo() {
+  for (let i = undoStack.length - 1; i >= 0; i--) {
+    if (!undoStack[i].done) return undoStack[i];
+  }
+  return null;
+}
+
+function updateUndoButton(flash) {
+  const btn = $('#btn-undo');
+  if (!btn) return;
+  const entry = latestUndo();
+  btn.disabled = !entry;
+  btn.classList.toggle('ready', !!entry);
+  btn.title = entry ? '撤销「' + entry.label + '」（Ctrl+Z）' : '没有可撤销的操作（Ctrl+Z）';
+  btn.setAttribute('aria-label', btn.title);
+  for (const e of undoStack) {
+    const t = e.toastBtn;
+    if (!t || !t.isConnected || !e.done) continue;
+    t.textContent = '已撤销';
+    t.disabled = true;
+  }
+  if (entry && flash) {
+    btn.classList.remove('pulse');
+    void btn.offsetWidth;
+    btn.classList.add('pulse');
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(() => btn.classList.remove('pulse'), 650);
+  }
+}
+
+async function runUndo(entry) {
+  let target;
+  if (entry) {
+    if (entry.done || !entry.fn) return false;
+    target = entry;
+  } else {
+    target = latestUndo();
+  }
+  if (!target) { toast('没有可撤销的操作', 'info'); return false; }
+  target.done = true;
+  const fn = target.fn;
+  target.fn = null;
+  try {
+    await fn();
+  } catch (err) {
+    console.error(err);
+    toast('撤销失败：' + (err.message || err), 'error');
+  }
+  updateUndoButton(false);
+  return true;
 }
 
 /* ================= 确认框 ================= */
@@ -5322,16 +5430,18 @@ async function deleteItems(list, options = {}) {
   }
 
   render();
+  const undo = pushUndo('删除 ' + backup.length + ' 张', async () => {
+    for (const item of backup) {
+      try { await dbPut(item); state.items.push(item); } catch (err) { console.error(err); }
+    }
+    sortItems();
+    render();
+    toast('已恢复 ' + backup.length + ' 张', 'success');
+  });
   toast('已删除 ' + backup.length + ' 张', 'info', {
     label: '撤销',
-    fn: async () => {
-      for (const item of backup) {
-        try { await dbPut(item); state.items.push(item); } catch (err) { console.error(err); }
-      }
-      sortItems();
-      render();
-      toast('已恢复', 'success');
-    }
+    entry: undo,
+    fn: () => runUndo(undo)
   });
 }
 
@@ -6214,6 +6324,10 @@ function bindEvents() {
   $$('.picker-confirm').forEach(btn => btn.addEventListener('click', confirmFolderPicker));
   window.addEventListener('resize', () => { closeFolderMenu(); closeImageMenu(); });
 
+  // 撤销
+  $('#btn-undo').addEventListener('click', () => runUndo());
+  updateUndoButton(false);
+
   // 管理模式
   $('#btn-manage').addEventListener('click', () => setManage(!state.manage));
 
@@ -6306,6 +6420,10 @@ function bindEvents() {
 
   // 预览里直接改名称
   const lbName = $('#lb-name');
+  lbName.addEventListener('focus', () => {
+    const item = state.items.find(i => i.id === state.lbId);
+    state.lbNameBefore = item ? (item.name || '') : null;
+  });
   lbName.addEventListener('input', () => {
     const item = state.items.find(i => i.id === state.lbId);
     if (!item) return;
@@ -6319,7 +6437,25 @@ function bindEvents() {
   lbName.addEventListener('blur', () => {
     if (!state.lbId) return;
     const item = state.items.find(i => i.id === state.lbId);
-    if (item) { updateCardName(item); saveNow(item); }
+    if (!item) return;
+    updateCardName(item);
+    saveNow(item);
+    const before = state.lbNameBefore;
+    state.lbNameBefore = null;
+    if (before != null && before !== (item.name || '')) {
+      const id = item.id;
+      const undo = pushUndo('修改名称', async () => {
+        const it = state.items.find(x => x.id === id);
+        if (!it) return;
+        it.name = before;
+        await saveNow(it);
+        updateCardName(it);
+        render();
+        if (state.lbId === id) renderLightbox();
+        toast('已撤销改名', 'success');
+      });
+      toast('已改名', 'info', { label: '撤销', entry: undo, fn: () => runUndo(undo) });
+    }
   });
   $('#lb-fav').addEventListener('click', () => {
     const item = state.items.find(i => i.id === state.lbId);
@@ -6381,6 +6517,11 @@ function bindEvents() {
         e.preventDefault();
         if (!cropState.busy) closeCrop();
       }
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z' || e.code === 'KeyZ')) {
+      e.preventDefault();
+      runUndo();
       return;
     }
     const lbOpen = $('#lightbox').classList.contains('open');
