@@ -46,20 +46,9 @@
     padding: 12px 24px;
   }
   .app-header { padding-bottom: 8px; }
-  .brand { display: flex; align-items: center; gap: 10px; flex: none; }
-  .logo {
-    width: 38px; height: 38px; border-radius: 11px;
-    background: linear-gradient(145deg, #0f766e, #115e59);
-    color: #fff; display: grid; place-items: center;
-    font-weight: 700; font-size: 19px;
-    box-shadow: 0 4px 12px rgba(15, 118, 110, .25);
-    flex: none;
-  }
-  .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
-  .brand-text b { font-size: 18px; letter-spacing: .5px; }
-  .brand-text small { font-size: 12px; color: var(--muted); }
+  .head-left { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
 
-  .searchbox { position: relative; flex: 1; max-width: 420px; margin: 0 auto 0 8px; }
+  .searchbox { position: relative; flex: 0 2 420px; min-width: 150px; margin: 0 auto; }
   .searchbox svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: .4; }
   .searchbox input {
     width: 100%; height: 38px; padding: 0 34px 0 36px;
@@ -107,21 +96,25 @@
 
   /* ---------------- 次栏 ---------------- */
   .subbar { padding-top: 0; padding-bottom: 12px; flex-wrap: wrap; gap: 10px; }
-  .nav-history { display: inline-flex; gap: 4px; flex: none; }
-  .nav-btn {
-    width: 30px; height: 30px; padding: 0;
-    border: 1px solid var(--line); border-radius: 8px;
-    background: #fff; color: var(--ink);
-    font-size: 19px; line-height: 1; cursor: pointer;
-    display: grid; place-items: center;
-    font-family: Georgia, "Times New Roman", serif;
-    transition: background .15s, border-color .15s, color .15s;
+  .nav-history {
+    display: inline-flex; gap: 2px; flex: none;
+    background: #fff; border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px; box-shadow: 0 1px 4px rgba(23, 26, 31, .05);
   }
-  .nav-btn:hover:not(:disabled) { background: #f3faf8; border-color: #b9d8d4; color: var(--accent); }
-  .nav-btn:disabled { opacity: .3; cursor: default; }
+  .nav-btn {
+    width: 32px; height: 32px; padding: 0;
+    border: 0; border-radius: 50%;
+    background: transparent; color: #5b6069;
+    cursor: pointer; display: grid; place-items: center;
+    transition: background .15s, color .15s, transform .08s;
+  }
+  .nav-btn > svg { width: 17px; height: 17px; display: block; pointer-events: none; }
+  .nav-btn:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-dark); }
+  .nav-btn:active:not(:disabled) { transform: scale(.92); }
+  .nav-btn:disabled { opacity: .28; cursor: default; }
   .crumb {
     display: flex; align-items: center; gap: 2px;
-    flex: 0 1 auto; max-width: min(470px, 40vw); min-width: 0;
+    flex: 0 1 auto; max-width: min(520px, 42vw); min-width: 0;
   }
   .crumb-trail {
     display: flex; align-items: center; gap: 2px; min-width: 0;
@@ -273,10 +266,14 @@
     transition: box-shadow .18s, border-color .18s, transform .18s;
   }
   .card:hover { box-shadow: 0 12px 30px rgba(23, 26, 31, .08); border-color: #ddd6c8; }
-  .card.pinned::after {
-    content: "📌"; position: absolute; bottom: 10px; left: 10px;
-    font-size: 14px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
-    pointer-events: none; z-index: 2;
+  .card.fav:not(.selected) .thumb::after {
+    content: "★";
+    position: absolute; left: 10px; bottom: 10px; z-index: 2;
+    width: 26px; height: 26px; display: grid; place-items: center;
+    border-radius: 50%; background: rgba(20, 22, 26, .48);
+    color: #ffd24a; font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .22);
+    pointer-events: none;
   }
 
   /* ---------------- 完成状态 ---------------- */
@@ -377,6 +374,14 @@
   }
   .meta button:hover { background: #f4f2ec; color: var(--ink); }
   .meta button.del:hover { color: var(--danger); }
+  .meta .fav-btn {
+    width: 24px; height: 24px; padding: 0; display: grid; place-items: center;
+    color: #bdb6a8;
+  }
+  .meta .fav-btn > svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+  .meta .fav-btn:hover { color: #d9a441; background: #faf3e3; }
+  .meta .fav-btn.on { color: #e0a11b; }
+  .meta .fav-btn.on > svg { filter: drop-shadow(0 1px 2px rgba(224, 161, 27, .35)); }
 
   /* 紧凑视图：缩小卡片内的文字，避免挤在一起 */
   body.view-compact .card-body { padding: 10px 11px 8px; gap: 4px; }
@@ -443,10 +448,10 @@
   .toast.out { opacity: 0; transform: translateY(-4px); transition: .2s; }
   .toast .msg { flex: 1; }
   .toast-action {
-    border: 0; background: rgba(255,255,255,.16); color: #fff;
-    padding: 4px 10px; border-radius: 7px; cursor: pointer; font-size: 13px;
+    border: 1px solid rgba(255,255,255,.34); background: rgba(255,255,255,.2); color: #fff;
+    padding: 4px 12px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600;
   }
-  .toast-action:hover { background: rgba(255,255,255,.26); }
+  .toast-action:hover { background: rgba(255,255,255,.32); }
   .toast-close { border: 0; background: transparent; color: rgba(255,255,255,.6); font-size: 16px; cursor: pointer; line-height: 1; padding: 0 2px; }
   @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
 
@@ -504,7 +509,28 @@
     font-size: 20px; cursor: pointer;
   }
   .lb-info { width: min(1100px, 88vw); color: #fff; padding-top: 14px; }
-  .lb-info h3 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+  .lb-titlerow { display: flex; align-items: center; gap: 6px; margin: 0 0 2px; }
+  .lb-name-input {
+    flex: 0 1 auto; width: min(520px, 60vw); min-width: 0;
+    padding: 3px 8px; margin: 0 0 0 -8px;
+    border: 1px solid transparent; border-radius: 8px;
+    background: transparent; color: #fff;
+    font-size: 17px; font-weight: 600; font-family: inherit; outline: none;
+    transition: background .15s, border-color .15s;
+  }
+  .lb-name-input:hover { background: rgba(255,255,255,.07); }
+  .lb-name-input:focus { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.24); }
+  .lb-name-input::placeholder { color: rgba(255,255,255,.35); font-weight: 400; }
+  .lb-fav {
+    width: 30px; height: 30px; flex: none; padding: 0;
+    border: 0; border-radius: 8px; background: transparent;
+    color: rgba(255,255,255,.5); cursor: pointer;
+    display: grid; place-items: center;
+    transition: background .15s, color .15s;
+  }
+  .lb-fav > svg { width: 19px; height: 19px; display: block; pointer-events: none; }
+  .lb-fav:hover { background: rgba(255,255,255,.12); color: #f5c542; }
+  .lb-fav.on { color: #f5b301; }
   .lb-info p { margin: 0; color: rgba(255,255,255,.66); font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; max-height: 90px; overflow-y: auto; }
   .lb-info .lb-meta { margin-top: 6px; font-size: 12px; color: rgba(255,255,255,.42); }
   .lb-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
@@ -572,6 +598,7 @@
     padding: 24px 24px 20px; max-height: calc(100vh - 48px); overflow-y: auto;
     animation: modal-in .18s ease-out;
   }
+  .modal.narrow { width: min(420px, 100%); }
   @keyframes modal-in { from { opacity: 0; transform: translateY(8px) scale(.99); } }
   .modal h3 { margin: 0 0 6px; font-size: 19px; }
   .modal .sub { margin: 0 0 18px; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
@@ -763,7 +790,6 @@
     .crumb { max-width: min(300px, 45vw); }
     .crumb-seg { max-width: 150px; }
     .folder-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
-    .brand-text small { display: none; }
     .head-actions { flex-wrap: wrap; justify-content: flex-end; }
     .share-actions { grid-template-columns: 1fr; }
     .gbar-hint { display: none; }
@@ -779,7 +805,9 @@
   @media (max-width: 620px) {
     .head-actions { width: 100%; margin-left: 0; gap: 6px; }
     .head-actions .btn { padding: 0 11px; }
-    .nav-btn { width: 28px; height: 28px; font-size: 17px; }
+    .nav-btn { width: 28px; height: 28px; }
+    .nav-btn > svg { width: 15px; height: 15px; }
+    .nav-history { padding: 2px; }
     .crumb { max-width: min(210px, 48vw); }
     .crumb-seg { max-width: 118px; padding: 4px 5px; }
     .folder-grid { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
@@ -797,11 +825,18 @@
 
 <div class="header-wrap">
   <header class="app-header">
-    <div class="brand">
-      <div class="logo">图</div>
-      <div class="brand-text">
-        <b>图记</b>
-        <small>图片 + 备注 · 本地保存 · 一键分享</small>
+    <div class="head-left">
+      <div class="nav-history" role="group" aria-label="浏览历史">
+        <button type="button" class="nav-btn" id="nav-back" title="后退（鼠标侧键）" aria-label="后退" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6L8.5 12l6 6"></path></svg>
+        </button>
+        <button type="button" class="nav-btn" id="nav-forward" title="前进（鼠标侧键）" aria-label="前进" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6l6 6-6 6"></path></svg>
+        </button>
+      </div>
+      <div class="crumb" id="crumb">
+        <div class="crumb-trail" id="crumb-trail"></div>
+        <button type="button" class="crumb-star" id="crumb-star" title="收藏当前文件夹" aria-label="收藏当前文件夹" hidden></button>
       </div>
     </div>
 
@@ -822,14 +857,6 @@
   </header>
 
   <div class="subbar">
-    <div class="nav-history" role="group" aria-label="浏览历史">
-      <button type="button" class="nav-btn" id="nav-back" title="后退（鼠标侧键）" aria-label="后退" disabled>‹</button>
-      <button type="button" class="nav-btn" id="nav-forward" title="前进（鼠标侧键）" aria-label="前进" disabled>›</button>
-    </div>
-    <div class="crumb" id="crumb">
-      <div class="crumb-trail" id="crumb-trail"></div>
-      <button type="button" class="crumb-star" id="crumb-star" title="收藏当前文件夹" aria-label="收藏当前文件夹" hidden></button>
-    </div>
     <div class="stats" id="stats-images">
       <span>共 <b id="count-total">0</b> 张</span>
       <span class="dot"></span>
@@ -858,7 +885,7 @@
     <div class="sort-box">
       <span class="view-caption">排序</span>
       <select id="sort-select" aria-label="排序方式">
-        <option value="default">默认排序</option>
+        <option value="default">默认（收藏优先）</option>
         <option value="name-asc">名称 ↑</option>
         <option value="name-desc">名称 ↓</option>
         <option value="date-desc">日期 新→旧</option>
@@ -940,7 +967,10 @@
     </div>
   </div>
   <div class="lb-info">
-    <h3 id="lb-name"></h3>
+    <div class="lb-titlerow">
+      <input id="lb-name" class="lb-name-input" type="text" placeholder="未命名" maxlength="100" autocomplete="off" spellcheck="false" aria-label="图片名称">
+      <button type="button" class="lb-fav" id="lb-fav" title="收藏这张图" aria-label="收藏这张图" aria-pressed="false"></button>
+    </div>
     <p id="lb-note"></p>
     <div class="lb-meta" id="lb-meta"></div>
     <div class="lb-actions">
@@ -1199,7 +1229,7 @@ function withTimeout(promise, ms, message) {
 
 /* ================= 状态 ================= */
 const state = {
-  items: [],          // {id, name, note, blob, created, pinned, group, done}
+  items: [],          // {id, name, note, blob, created, fav, group, done}
   groups: [],         // {id, name, created, folderId}
   folders: [],        // {id, name, created, favorite, parentId}；parentId 为空表示根目录
   folder: '',         // 当前 / 上次所在的文件夹 id
@@ -1317,7 +1347,7 @@ function groupCounts(groupId) {
 }
 
 function sortItems() {
-  state.items.sort((a, b) => ((b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)) || (b.created - a.created));
+  state.items.sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || (b.created - a.created));
 }
 
 const SORT_MODES = ['default', 'name-asc', 'name-desc', 'date-desc', 'date-asc'];
@@ -2745,16 +2775,76 @@ async function moveFolderTo(folderId, targetParentId = '') {
     : '已把「' + folder.name + '」移动到全部文件夹', 'success');
 }
 
+function updateCardDoneUI(item) {
+  const card = $(`.card[data-id="${CSS.escape(item.id)}"]`);
+  if (!card) return;
+  card.classList.toggle('done', !!item.done);
+  const check = card.querySelector('.check');
+  if (check) check.title = item.done ? '取消完成' : '标记为已完成';
+  const box = card.querySelector('.check input');
+  if (box) box.checked = !!item.done;
+  const meta = card.querySelector('.meta');
+  if (meta) {
+    const tag = meta.querySelector('.done-tag');
+    if (item.done && !tag) meta.prepend(el('span', { class: 'done-tag' }, '✓ 已完成'));
+    else if (!item.done && tag) tag.remove();
+  }
+}
+
+function updateCardName(item) {
+  const input = $(`.card[data-id="${CSS.escape(item.id)}"] .name`);
+  if (input && input.value !== (item.name || '')) input.value = item.name || '';
+}
+
+async function toggleItemFav(item) {
+  item.fav = !item.fav;
+  await saveNow(item);
+  sortItems();
+  render();
+  if (state.lbId === item.id) renderLightbox();
+  toast(item.fav ? '已收藏' : '已取消收藏', 'info');
+}
+
 async function setDone(items, done) {
   const list = (items || []).filter(Boolean);
   if (!list.length) return;
+  const prev = list.map(item => ({ item, done: !!item.done }));
+
+  // 先立刻更新卡片外观，再在后台写入数据库，避免勾选后高亮“慢半拍”
   for (const item of list) {
     item.done = done;
-    await saveNow(item);
+    updateCardDoneUI(item);
   }
-  render();
   if (state.lbId && list.some(i => i.id === state.lbId)) renderLightbox();
-  toast(done ? '已标记完成 ' + list.length + ' 张' : '已标记未完成 ' + list.length + ' 张', 'success');
+
+  const saves = Promise.all(list.map(item => saveNow(item)));
+  const hiddenByFilter = list.some(item => done ? state.doneFilter === 'todo' : state.doneFilter === 'done');
+
+  if (hiddenByFilter) {
+    await saves;
+    render();
+  } else {
+    const counts = groupCounts(state.group);
+    $('#count-total').textContent = counts.total;
+    $('#count-done').textContent = '已完成 ' + counts.done;
+    renderGroupBar();
+    updateSelectionBar();
+    await saves;
+  }
+
+  toast(done ? '已标记完成 ' + list.length + ' 张' : '已标记未完成 ' + list.length + ' 张', 'success', {
+    label: '撤销',
+    fn: async () => {
+      for (const p of prev) {
+        p.item.done = p.done;
+        await saveNow(p.item);
+        updateCardDoneUI(p.item);
+      }
+      render();
+      if (state.lbId && prev.some(p => p.item.id === state.lbId)) renderLightbox();
+      toast('已撤销', 'success');
+    }
+  });
 }
 
 /* ================= 移动到分组 ================= */
@@ -2801,6 +2891,7 @@ function closeMoveModal() {
 
 async function moveSelectedTo(groupId) {
   const list = pendingGroupMove.slice();
+  const prev = list.map(item => ({ item, group: item.group }));
   for (const item of list) {
     item.group = groupId;
     await saveNow(item);
@@ -2809,7 +2900,17 @@ async function moveSelectedTo(groupId) {
   closeMoveModal();
   render();
   if (state.lbId && list.some(i => i.id === state.lbId)) closeLightbox();
-  toast('已把 ' + list.length + ' 张移动到「' + groupById(groupId).name + '」', 'success');
+  toast('已把 ' + list.length + ' 张移动到「' + groupById(groupId).name + '」', 'success', {
+    label: '撤销',
+    fn: async () => {
+      for (const p of prev) {
+        p.item.group = p.group;
+        await saveNow(p.item);
+      }
+      render();
+      toast('已撤销移动', 'success');
+    }
+  });
 }
 
 /* ================= 移动到文件夹（图片） ================= */
@@ -2860,6 +2961,7 @@ async function moveImagesToFolder(folderId) {
     await saveGroups();
   }
 
+  const prev = list.map(item => ({ item, group: item.group }));
   for (const item of list) {
     item.group = group.id;
     await saveNow(item);
@@ -2868,7 +2970,17 @@ async function moveImagesToFolder(folderId) {
   closeImageFolderMoveModal();
   render();
   if (state.lbId && list.some(i => i.id === state.lbId)) closeLightbox();
-  toast('已把 ' + list.length + ' 张移动到「' + targetFolder.name + ' / ' + group.name + '」', 'success');
+  toast('已把 ' + list.length + ' 张移动到「' + targetFolder.name + ' / ' + group.name + '」', 'success', {
+    label: '撤销',
+    fn: async () => {
+      for (const p of prev) {
+        p.item.group = p.group;
+        await saveNow(p.item);
+      }
+      render();
+      toast('已撤销移动', 'success');
+    }
+  });
 }
 
 let imageCtxMenu = null;
@@ -2899,6 +3011,9 @@ function showImageMenu(item, items, x, y) {
     openCrop(item.id);
   });
 
+  const fav = el('button', { type: 'button', role: 'menuitem' }, item.fav ? '取消收藏' : '收藏这张图');
+  fav.addEventListener('click', () => { closeImageMenu(); toggleItemFav(item); });
+
   const moveFolder = el('button', { type: 'button', role: 'menuitem' }, '移动到文件夹…');
   moveFolder.addEventListener('click', () => {
     closeImageMenu();
@@ -2918,7 +3033,7 @@ function showImageMenu(item, items, x, y) {
     deleteItems(items);
   });
 
-  menu.append(preview, edit, moveFolder, moveGroup, del);
+  menu.append(preview, edit, fav, moveFolder, moveGroup, del);
   document.body.append(menu);
   imageCtxMenu = menu;
 
@@ -2942,7 +3057,7 @@ function showImageMenu(item, items, x, y) {
 function buildCard(item) {
   const card = el('article', { class: 'card', dataset: { id: item.id } });
   if (state.selected.has(item.id)) card.classList.add('selected');
-  if (item.pinned) card.classList.add('pinned');
+  if (item.fav) card.classList.add('fav');
   if (item.done) card.classList.add('done');
 
   const img = el('img', { src: getUrl(item), alt: item.name || '图片', loading: 'lazy', draggable: 'false' });
@@ -2955,11 +3070,9 @@ function buildCard(item) {
   check.append(checkbox, mark);
 
   const tools = el('div', { class: 'thumb-tools' });
-  const btnPreview = el('button', { type: 'button' }, '预览');
   const btnCopy = el('button', { type: 'button' }, '复制图');
-  btnPreview.addEventListener('click', e => { e.stopPropagation(); openLightbox(item.id); });
   btnCopy.addEventListener('click', e => { e.stopPropagation(); copyImage(item); });
-  tools.append(btnPreview, btnCopy);
+  tools.append(btnCopy);
 
   const thumb = el('div', {
     class: 'thumb',
@@ -2997,14 +3110,15 @@ function buildCard(item) {
   note.addEventListener('blur', () => saveNow(item));
   requestAnimationFrame(() => autosize(note));
 
-  const pinBtn = el('button', { type: 'button', title: item.pinned ? '取消置顶' : '置顶' }, item.pinned ? '取消置顶' : '置顶');
-  pinBtn.addEventListener('click', async () => {
-    item.pinned = !item.pinned;
-    await saveNow(item);
-    sortItems();
-    render();
-    toast(item.pinned ? '已置顶' : '已取消置顶', 'info');
+  const favBtn = el('button', {
+    type: 'button',
+    class: 'fav-btn' + (item.fav ? ' on' : ''),
+    title: item.fav ? '取消收藏' : '收藏这张图',
+    'aria-label': item.fav ? '取消收藏' : '收藏这张图',
+    'aria-pressed': item.fav ? 'true' : 'false'
   });
+  favBtn.innerHTML = item.fav ? STAR_FILLED_SVG : STAR_SVG;
+  favBtn.addEventListener('click', () => toggleItemFav(item));
 
   const delBtn = el('button', { type: 'button', class: 'del', title: '删除' }, '删除');
   delBtn.addEventListener('click', () => deleteItems([item]));
@@ -3016,7 +3130,7 @@ function buildCard(item) {
     el('span', {}, '·'),
     el('span', {}, fmtSize(item.blob.size)),
     el('span', { class: 'spacer' }),
-    pinBtn,
+    favBtn,
     delBtn
   );
   const meta = el('div', { class: 'meta' }, ...metaChildren);
@@ -3165,7 +3279,7 @@ async function addFiles(fileList, options = {}) {
       note: '',
       blob: file,
       created: Date.now(),
-      pinned: false,
+      fav: false,
       group: targetGroupId,
       done: false
     };
@@ -4526,14 +4640,14 @@ function toast(message, type = 'info', action = null) {
   box.append(closeBtn);
 
   $('#toasts').append(box);
-  timer = setTimeout(close, action ? 7000 : 3400);
+  timer = setTimeout(close, action ? 12000 : 3400);
 }
 
 /* ================= 确认框 ================= */
 function confirmDialog({ title = '确认操作', message = '', okText = '确定', danger = false } = {}) {
   return new Promise(resolve => {
     const mask = el('div', { class: 'modal-mask open' });
-    const panel = el('div', { class: 'modal' });
+    const panel = el('div', { class: 'modal narrow' });
 
     const finish = value => {
       document.removeEventListener('keydown', onKey);
@@ -4631,13 +4745,22 @@ function renderLightbox() {
   if (!item) { closeLightbox(); return; }
   $('#lb-img').src = getUrl(item);
   $('#lb-img').alt = item.name || '图片';
-  $('#lb-name').textContent = (item.name || '').trim() || '未命名';
+  const nameInput = $('#lb-name');
+  if (nameInput && document.activeElement !== nameInput) nameInput.value = item.name || '';
   const note = (item.note || '').trim();
   $('#lb-note').textContent = note;
   $('#lb-note').style.display = note ? '' : 'none';
   $('#lb-meta').textContent = fmtDate(item.created, 'long') + ' · ' + fmtSize(item.blob.size) +
     ' · ' + groupById(item.group).name + (item.done ? ' · 已完成' : '');
   $('#lb-done').textContent = item.done ? '取消完成' : '标记完成';
+  const fav = $('#lb-fav');
+  if (fav) {
+    fav.classList.toggle('on', !!item.fav);
+    fav.innerHTML = item.fav ? STAR_FILLED_SVG : STAR_SVG;
+    fav.title = item.fav ? '取消收藏' : '收藏这张图';
+    fav.setAttribute('aria-label', fav.title);
+    fav.setAttribute('aria-pressed', item.fav ? 'true' : 'false');
+  }
   if (lbZoom.id !== item.id) {
     lbZoom.id = item.id;
     resetLightboxZoom();
@@ -5180,7 +5303,7 @@ async function deleteItems(list, options = {}) {
   if (options.confirm !== false) {
     const ok = await confirmDialog({
       title: '删除 ' + list.length + ' 张图片？',
-      message: '图片和备注会从本机删除，删除后 7 秒内可以撤销。',
+      message: '图片和备注会从本机删除，删除后 12 秒内可以点「撤销」找回。',
       okText: '删除',
       danger: true
     });
@@ -5294,7 +5417,7 @@ async function buildBackupPayload() {
       name: item.name || '',
       note: item.note || '',
       created: item.created,
-      pinned: !!item.pinned,
+      fav: !!item.fav,
       done: !!item.done,
       group: item.group,
       type: (item.blob && item.blob.type) || 'image/png',
@@ -5430,7 +5553,7 @@ async function exportBackupBlobFallback() {
       name: item.name || '',
       note: item.note || '',
       created: item.created,
-      pinned: !!item.pinned,
+      fav: !!item.fav,
       done: !!item.done,
       group: item.group,
       mime: (item.blob && item.blob.type) || 'image/png',
@@ -5502,7 +5625,7 @@ async function exportBackupStream() {
           name: item.name || '',
           note: item.note || '',
           created: item.created,
-          pinned: !!item.pinned,
+          fav: !!item.fav,
           done: !!item.done,
           group: item.group,
           mime: (item.blob && item.blob.type) || 'image/png',
@@ -5631,7 +5754,7 @@ async function normalizeBackup(data) {
       name: String(raw.name || '').slice(0, 100),
       note: String(raw.note || ''),
       created: Number(raw.created) || Date.now(),
-      pinned: !!raw.pinned,
+      fav: !!raw.fav,
       done: !!raw.done,
       group: groupIds.has(raw.group) ? raw.group : groups[0].id,
       blob
@@ -5723,7 +5846,7 @@ async function importBackupAdditive(data) {
     name: raw.name,
     note: raw.note,
     created: raw.created,
-    pinned: !!raw.pinned,
+    fav: !!raw.fav,
     done: !!raw.done,
     group: plan.groupIdMap.get(raw.group) || plan.fallbackGroupId,
     blob: raw.blob
@@ -5822,7 +5945,7 @@ async function importBackupJsonlStream(file) {
           name: String(raw.name || '').slice(0, 100),
           note: String(raw.note || ''),
           created: Number(raw.created) || Date.now(),
-          pinned: !!raw.pinned,
+          fav: !!raw.fav,
           done: !!raw.done,
           group: plan.groupIdMap.get(raw.group) || plan.fallbackGroupId,
           blob
@@ -6180,6 +6303,29 @@ function bindEvents() {
   $('#lb-prev').addEventListener('click', () => lightboxStep(-1));
   $('#lb-next').addEventListener('click', () => lightboxStep(1));
   bindLightboxZoom();
+
+  // 预览里直接改名称
+  const lbName = $('#lb-name');
+  lbName.addEventListener('input', () => {
+    const item = state.items.find(i => i.id === state.lbId);
+    if (!item) return;
+    item.name = lbName.value;
+    updateCardName(item);
+    scheduleSave(item);
+  });
+  lbName.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); lbName.blur(); }
+  });
+  lbName.addEventListener('blur', () => {
+    if (!state.lbId) return;
+    const item = state.items.find(i => i.id === state.lbId);
+    if (item) { updateCardName(item); saveNow(item); }
+  });
+  $('#lb-fav').addEventListener('click', () => {
+    const item = state.items.find(i => i.id === state.lbId);
+    if (item) toggleItemFav(item);
+  });
+
   $('#lb-edit').addEventListener('click', () => {
     const item = state.items.find(i => i.id === state.lbId);
     if (item) openCrop(item.id);
@@ -6227,6 +6373,9 @@ function bindEvents() {
 
   // 键盘
   document.addEventListener('keydown', e => {
+    const t = e.target;
+    const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    if (typing && e.key !== 'Escape') return;
     if (cropOpen()) {
       if (e.key === 'Escape') {
         e.preventDefault();
