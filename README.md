@@ -4,6 +4,18 @@
 
 整个软件只有一个 `index.html` 文件，不需要安装、不需要联网、不需要登录，图片和备注只保存在你自己的浏览器里。
 
+## 下载 Windows 安装包
+
+- 发布页：https://github.com/kkkki04/tuji-windows/releases/tag/v1.0.0
+- 文件：`TuJi-Windows-x64-v1.0.0.exe`（1,208,832 字节，单文件免安装）
+- SHA-256：`0BAB4ACDC9BF13DBC4333DAFD4C679CBC9BE0536735048A243313DA34A6F21FA`
+- macOS 安装包在另一个仓库：https://github.com/kkkki04/tuji-mac/releases/tag/v1.0.0
+  （`TuJi-macOS-arm64-v1.0.0.dmg` / `.zip`）
+
+> 两个仓库都是私有的，需要登录 GitHub 账号 **kkkki04** 才能下载。
+> 如果打开仓库首页看不到安装包，请点右侧的 **Releases**，或直接用上面的发布页链接。
+
+
 ## 界面风格（2026-10-28 更新）
 
 - 整体改为**无描边**风格：米白背景、白色圆角卡片、柔和阴影、橄榄绿主色、衬线标题、胶囊控件。
