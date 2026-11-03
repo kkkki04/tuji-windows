@@ -1,5 +1,9 @@
 # 序集 XUJI · 图片与文档整理
 
+> **已整合到统一仓库：https://github.com/kkkki04/xuji**
+> 后续更新、Windows 与 macOS 安装包都在新仓库；本仓库保留为历史镜像。
+
+
 > 让每一份灵感，都有序可循。
 >
 > 2026-11 品牌升级：原「图记 / TuJi」更名为「序集 / XUJI」。数据目录、IndexedDB、WebView2 / Electron 数据路径和 `tuji.local` 协议保持原样，升级后继续读取原有数据。
