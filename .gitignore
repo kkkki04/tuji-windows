@@ -3,4 +3,5 @@
 obj/
 bin/
 图记数据/
+序集数据/
 node_modules/

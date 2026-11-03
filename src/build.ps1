@@ -1,7 +1,8 @@
-﻿# 图记 · 打包脚本
-# 作用：下载 WebView2 SDK → 生成图标 → 用系统自带 csc 编译出单文件 exe
+﻿# 序集 XUJI · 打包脚本
+# 作用：下载 WebView2 SDK → 用系统自带 csc 编译出单文件 exe（图标来自 assets/icon.ico）
 param(
-  [string]$OutDir = ''
+  [string]$OutDir = '',
+  [string]$ExeName = '序集.exe'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -42,61 +43,17 @@ if (-not (Test-Path $coreDll) -or -not (Test-Path $wfDll) -or -not (Test-Path $l
   Write-Host 'WebView2 SDK 已缓存'
 }
 
-# ---------- 2. 生成图标 ----------
-$icoPath = Join-Path $objDir 'app.ico'
-Add-Type -AssemblyName System.Drawing
-
-$size = 256
-$bmp = New-Object System.Drawing.Bitmap($size, $size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-$g = [System.Drawing.Graphics]::FromImage($bmp)
-$g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-$g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
-$g.Clear([System.Drawing.Color]::Transparent)
-
-$pad = 10; $d = $size - $pad * 2; $r = 54
-$path = New-Object System.Drawing.Drawing2D.GraphicsPath
-$path.AddArc($pad, $pad, $r, $r, 180, 90)
-$path.AddArc($pad + $d - $r, $pad, $r, $r, 270, 90)
-$path.AddArc($pad + $d - $r, $pad + $d - $r, $r, $r, 0, 90)
-$path.AddArc($pad, $pad + $d - $r, $r, $r, 90, 90)
-$path.CloseFigure()
-
-$brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
-  (New-Object System.Drawing.Point(0, 0)),
-  (New-Object System.Drawing.Point($size, $size)),
-  [System.Drawing.Color]::FromArgb(255, 16, 122, 113),
-  [System.Drawing.Color]::FromArgb(255, 15, 84, 80))
-$g.FillPath($brush, $path)
-
-$font = New-Object System.Drawing.Font('Microsoft YaHei', 132, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
-$sf = New-Object System.Drawing.StringFormat
-$sf.Alignment = [System.Drawing.StringAlignment]::Center
-$sf.LineAlignment = [System.Drawing.StringAlignment]::Center
-$g.DrawString('图', $font, [System.Drawing.Brushes]::White,
-  (New-Object System.Drawing.RectangleF(0, 8, $size, $size)), $sf)
-$g.Dispose()
-
-$pngStream = New-Object System.IO.MemoryStream
-$bmp.Save($pngStream, [System.Drawing.Imaging.ImageFormat]::Png)
-$png = $pngStream.ToArray()
-$bmp.Dispose()
-$pngStream.Dispose()
-
-# 写 PNG 压缩格式的 ico（Windows Vista+ 支持）
-$fs = [System.IO.File]::Create($icoPath)
-$bw = New-Object System.IO.BinaryWriter($fs)
-$bw.Write([UInt16]0); $bw.Write([UInt16]1); $bw.Write([UInt16]1)
-$bw.Write([Byte]0); $bw.Write([Byte]0); $bw.Write([Byte]0); $bw.Write([Byte]0)
-$bw.Write([UInt16]1); $bw.Write([UInt16]32)
-$bw.Write([UInt32]$png.Length); $bw.Write([UInt32]22)
-$bw.Write($png)
-$bw.Close(); $fs.Close()
+# ---------- 2. 应用图标 ----------
+$icoPath = Join-Path $projectDir 'assets\icon.ico'
+if (-not (Test-Path $icoPath)) {
+  throw "找不到应用图标：$icoPath（请先运行 src/make-icons.ps1 生成）"
+}
 
 # ---------- 3. 编译 ----------
 $html = Join-Path $projectDir 'index.html'
 if (-not (Test-Path $html)) { throw "找不到 index.html：$html" }
 
-$exe = Join-Path $OutDir '图记.exe'
+$exe = Join-Path $OutDir $ExeName
 Write-Host "正在编译 → $exe"
 
 $args = @(

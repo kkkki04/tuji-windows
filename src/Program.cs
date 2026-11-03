@@ -1,4 +1,4 @@
-﻿// 图记 · 图片备注板 —— Windows 原生窗口宿主（WebView2）
+﻿// 序集 XUJI · 图片与文档整理 —— Windows 原生窗口宿主（WebView2）
 // 编译：见 build.ps1（使用系统自带 csc.exe，无需 .NET SDK）
 using System;
 using System.Drawing;
@@ -9,6 +9,14 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
+
+[assembly: AssemblyTitle("序集 XUJI")]
+[assembly: AssemblyProduct("序集 XUJI · 图片与文档整理")]
+[assembly: AssemblyDescription("让每一份灵感，都有序可循。")]
+[assembly: AssemblyCompany("XUJI")]
+[assembly: AssemblyCopyright("Copyright © 2026 XUJI")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
 
 namespace TuJi
 {
@@ -27,7 +35,7 @@ namespace TuJi
             _mutex = new Mutex(true, "TuJiApp.SingleInstance", out isFirstInstance);
             if (!isFirstInstance)
             {
-                MessageBox.Show("「图记」已经在运行了。", "图记",
+                MessageBox.Show("「序集」已经在运行了。", "序集",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -42,7 +50,7 @@ namespace TuJi
             }
             catch (Exception ex)
             {
-                MessageBox.Show("启动失败：\n\n" + ex.Message, "图记",
+                MessageBox.Show("启动失败：\n\n" + ex.Message, "序集",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -109,7 +117,7 @@ namespace TuJi
             Application.SetCompatibleTextRenderingDefault(false);
 
             Form form = new Form();
-            form.Text = "图记 · 图片备注板";
+            form.Text = "序集·让每一份灵感，都有序可循";
             form.ClientSize = new Size(1280, 860);
             form.MinimumSize = new Size(720, 520);
             form.StartPosition = FormStartPosition.CenterScreen;
@@ -155,7 +163,7 @@ namespace TuJi
                 MessageBox.Show(
                     "无法初始化 WebView2 窗口：\n\n" + ex.Message +
                     "\n\n已尝试用默认浏览器打开同一页面。",
-                    "图记", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    "序集", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 Application.Exit();
             }
         }
