@@ -64,7 +64,7 @@
     display: flex; align-items: center; gap: 14px;
     padding: 16px 30px;
   }
-  .app-header { padding-bottom: 6px; }
+  .app-header { padding-bottom: 6px; position: relative; flex-wrap: nowrap; }
   .head-left { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
 
   .searchbox { position: relative; flex: 0 2 400px; min-width: 150px; margin: 0 auto; }
@@ -90,7 +90,9 @@
   }
   .searchbox.has-value .clear { display: block; }
 
-  .head-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+  .head-actions { display: flex; align-items: center; gap: 8px; flex: none; min-width: 0; }
+  .btn > svg { width: 16px; height: 16px; display: block; flex: none; opacity: .85; }
+  .btn.primary > svg { opacity: 1; }
 
   /* ---------------- 按钮 ---------------- */
   .btn {
@@ -116,7 +118,7 @@
   .btn.danger:hover { background: #f2ddd7; color: #9c3f30; }
 
   /* ---------------- 次栏 ---------------- */
-  .subbar { padding-top: 2px; padding-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .subbar { padding-top: 2px; padding-bottom: 14px; flex-wrap: nowrap; gap: 10px; }
   .nav-history {
     display: inline-flex; gap: 2px; flex: none;
     background: transparent; border: 0; border-radius: 999px;
@@ -154,7 +156,9 @@
   .crumb-seg.current { font-weight: 600; color: var(--ink); cursor: default; }
   .crumb-seg .cicon { display: flex; flex: none; color: var(--gold); }
   .crumb-seg .cname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .crumb-seg .cname-short { display: none; }
   .crumb-sep { flex: none; color: #c9c2b5; font-size: 13px; user-select: none; }
+  .crumb-more { flex: none; color: #a8a196; font-size: 13px; padding: 0 3px; }
   .crumb-star {
     width: 30px; height: 30px; padding: 0; flex: none;
     border: 0; border-radius: 50%; background: transparent;
@@ -176,7 +180,7 @@
     background: var(--accent-soft); color: var(--accent-ink); font-weight: 600;
   }
   body.manage .manage-btn:hover { background: #dfe8d7; }
-  body.manage .subbar { padding-top: 10px; }
+  body.manage .subbar { padding-top: 10px; flex-wrap: wrap; }
 
   /* ---------------- 网格 ---------------- */
   main { max-width: 1440px; margin: 0 auto; padding: 12px 30px 150px; }
@@ -466,20 +470,27 @@
   /* ---------------- 空状态 ---------------- */
   .empty {
     display: none; flex-direction: column; align-items: center; text-align: center;
-    padding: 64px 24px; border: 0; border-radius: 26px;
-    background: rgba(255,255,255,.45); color: var(--muted);
+    padding: 72px 24px 78px; border: 1px solid rgba(43, 40, 35, .055); border-radius: 24px;
+    background: #fffdf9; color: var(--muted);
+    box-shadow: 0 1px 2px rgba(45, 40, 30, .03), 0 16px 44px rgba(45, 40, 30, .045);
+    margin: 2px 0 8px;
   }
   .empty.show { display: flex; }
   .empty-icon {
-    width: 66px; height: 66px; margin-bottom: 16px;
-    display: grid; place-items: center; font-size: 30px;
-    background: var(--bg-soft); border-radius: 50%;
+    width: 126px; height: 104px; margin-bottom: 14px;
+    display: grid; place-items: center; font-size: 0;
+    background: transparent; border-radius: 0;
   }
-  .empty h2 { margin: 0 0 8px; font-family: var(--serif); font-size: 23px; font-weight: 600; color: var(--ink); letter-spacing: .3px; }
-  .empty p { margin: 0 0 20px; line-height: 1.85; font-size: 14px; color: var(--muted); }
+  .empty-icon svg { width: 126px; height: 104px; display: block; }
+  .empty h2 { margin: 0 0 10px; font-family: var(--serif); font-size: 26px; font-weight: 600; color: var(--ink); letter-spacing: .3px; }
+  .empty p { margin: 0 0 24px; line-height: 1.9; font-size: 14.5px; color: var(--muted); max-width: 540px; }
+  .empty code {
+    background: #f4f2ea; color: var(--ink-2); padding: 1px 6px;
+    border-radius: 5px; font-size: .92em;
+  }
   .empty kbd {
     display: inline-block; padding: 2px 8px; border-radius: 6px;
-    border: 0; background: #fff; font-size: 12px;
+    border: 0; background: var(--bg-soft); font-size: 12px;
     font-family: inherit; color: var(--ink-2);
     box-shadow: 0 1px 2px rgba(45,40,30,.06);
   }
@@ -1022,22 +1033,113 @@
     .doc-panel h2 { font-size: 20px; }
   }
 
+  /* ---------------- 紧凑下拉（小窗口） ---------------- */
+  .compact-select { display: none; position: relative; flex: none; }
+  .compact-select > summary,
+  .more-details > summary {
+    list-style: none; cursor: pointer; user-select: none;
+    height: 33px; display: inline-flex; align-items: center; gap: 5px;
+    padding: 0 11px; border-radius: 10px;
+    background: var(--bg-soft); color: var(--ink-2);
+    font-size: 12.5px; font-family: inherit; white-space: nowrap;
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .compact-select > summary::-webkit-details-marker,
+  .more-details > summary::-webkit-details-marker { display: none; }
+  .compact-select > summary:hover, .more-details > summary:hover { background: #e7e3da; color: var(--ink); }
+  .compact-select[open] > summary, .more-details[open] > summary { background: #fff; color: var(--ink); box-shadow: var(--shadow-sm); }
+  .compact-select > summary > svg { width: 12px; height: 12px; opacity: .55; flex: none; transition: transform .15s; }
+  .compact-select[open] > summary > svg { transform: rotate(180deg); }
+  .cs-menu {
+    position: absolute; right: 0; top: calc(100% + 7px); z-index: 75;
+    min-width: 158px; padding: 5px;
+    display: flex; flex-direction: column; gap: 1px;
+    background: #fff; border-radius: 14px; box-shadow: var(--shadow-lg);
+  }
+  .cs-menu button {
+    border: 0; background: transparent; text-align: left;
+    padding: 8px 11px; border-radius: 9px;
+    font-size: 13px; color: var(--ink); cursor: pointer; font-family: inherit;
+    white-space: nowrap;
+  }
+  .cs-menu button:hover { background: var(--bg-soft); }
+  .cs-menu button.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+
+  .more-details { display: none; position: relative; flex: none; }
+  .more-details > summary {
+    width: 38px; padding: 0; justify-content: center;
+    font-size: 19px; line-height: 1; letter-spacing: 1px; color: var(--ink-2);
+  }
+  .more-pop {
+    position: absolute; right: 0; top: calc(100% + 8px); z-index: 75;
+    min-width: 196px; padding: 6px;
+    display: flex; flex-direction: column; gap: 1px;
+    background: #fff; border-radius: 16px; box-shadow: var(--shadow-lg);
+  }
+  .more-pop button {
+    display: flex; align-items: center; gap: 9px;
+    border: 0; background: transparent; text-align: left;
+    padding: 9px 11px; border-radius: 10px;
+    font-size: 13.5px; color: var(--ink); cursor: pointer; font-family: inherit;
+    white-space: nowrap;
+  }
+  .more-pop button:hover { background: var(--bg-soft); }
+  .more-pop button > svg { width: 15px; height: 15px; flex: none; opacity: .6; }
+  .more-pop .sep { height: 1px; margin: 5px 8px; background: var(--line); }
+  .tf-short { display: none; }
+
   /* ---------------- 响应式 ---------------- */
+  @media (max-width: 1120px) {
+    .searchbox {
+      flex: 0 0 38px; width: 38px; min-width: 38px; height: 38px;
+      margin: 0; border-radius: 50%; background: var(--bg-soft);
+    }
+    .searchbox svg { left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: .72; }
+    .searchbox input {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      padding: 0; opacity: 0; cursor: pointer; background: transparent;
+    }
+    .searchbox input::placeholder { color: transparent; }
+    .searchbox .clear { display: none !important; }
+    .searchbox.has-value { background: var(--accent-soft); }
+    .searchbox.has-value svg { opacity: 1; color: var(--accent-ink); }
+    .searchbox:focus-within {
+      position: absolute; left: 14px; right: 14px; top: 10px;
+      width: auto; height: 40px; background: #fff;
+      border-radius: 999px; box-shadow: var(--shadow-lg); z-index: 85;
+    }
+    .searchbox:focus-within input {
+      position: static; opacity: 1; height: 40px;
+      padding: 0 36px 0 40px; background: #fff; cursor: text;
+    }
+    .searchbox:focus-within input::placeholder { color: var(--muted-2); }
+    .searchbox:focus-within svg { left: 15px; transform: translateY(-50%); }
+    .action-share, .action-backup { display: none; }
+    .more-details { display: inline-flex; }
+    .sort-box, .view-size { display: none; }
+    .compact-select { display: inline-flex; }
+    .sub-actions { display: none !important; }
+    body.manage .subbar { flex-wrap: nowrap; }
+    .tf-full { display: none; }
+    .tf-short { display: inline; }
+    .stats { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
+    .head-actions { gap: 6px; }
+    .head-actions .btn { padding: 0 12px; }
+    .crumb { max-width: none; }
+  }
   @media (max-width: 900px) {
-    .app-header { flex-wrap: wrap; padding: 14px 18px 6px; }
-    .searchbox { order: 3; flex-basis: 100%; max-width: none; margin: 4px 0 0; }
-    .head-actions { margin-left: auto; }
-    .subbar { padding: 0 18px 12px; }
+    .app-header { padding: 14px 18px 5px; gap: 9px; }
+    .subbar { padding: 0 18px 12px; gap: 8px; }
     main { padding: 12px 18px 158px; }
     .grid { gap: var(--grid-gap); }
     :root { --card-min: 240px; --grid-gap: 12px; }
     body.view-compact { --card-min: 180px; }
     body.view-loose { --card-min: 320px; }
     .view-caption { display: none; }
-    .crumb { max-width: min(320px, 46vw); }
-    .crumb-seg { max-width: 150px; }
+    .stat-secondary { display: none !important; }
+    .stats { font-size: 12.5px; gap: 7px; }
+    .crumb-seg { max-width: 140px; }
     .folder-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
-    .head-actions { flex-wrap: wrap; justify-content: flex-end; }
     .share-actions { grid-template-columns: 1fr; }
     .gbar-hint { display: none; }
     .selbar {
@@ -1047,15 +1149,32 @@
     }
     .selbar::-webkit-scrollbar { display: none; }
     .selbar .btn, .selbar .count { flex: none; }
-    .done-filter { order: 5; }
   }
-  @media (max-width: 620px) {
-    .head-actions { width: 100%; margin-left: 0; gap: 6px; }
-    .head-actions .btn { padding: 0 12px; }
+  @media (max-width: 720px) {
+    .done-filter button { padding: 6px 9px; font-size: 12px; }
+    .type-filter label { padding: 5px 8px; gap: 4px; font-size: 12px; }
+    .type-filter input { width: 12px; height: 12px; }
+    .compact-select > summary { height: 32px; padding: 0 9px; font-size: 12px; }
+    .crumb-seg { max-width: 104px; padding: 5px 7px; font-size: 13px; }
+    .crumb-seg .cname-full { display: none; }
+    .crumb-seg .cname-short { display: inline; }
     .nav-btn { width: 32px; height: 32px; }
     .nav-btn > svg { width: 17px; height: 17px; }
-    .crumb { max-width: min(210px, 48vw); }
-    .crumb-seg { max-width: 118px; padding: 5px 6px; }
+  }
+  @media (max-width: 620px) {
+    .app-header { padding: 12px 14px 4px; gap: 8px; }
+    .subbar { padding: 0 14px 10px; gap: 6px; }
+    .head-actions .btn { padding: 0 10px; font-size: 13px; }
+    .head-actions { gap: 5px; }
+    .more-details > summary { width: 34px; height: 34px; }
+    .crumb { max-width: none; }
+    .crumb-seg { max-width: 88px; }
+    .stats { font-size: 12px; gap: 6px; }
+    .done-filter { padding: 2px; }
+    .done-filter button { padding: 5px 7px; font-size: 11.5px; }
+    .type-filter { padding: 2px; }
+    .type-filter label { padding: 4px 7px; font-size: 11.5px; }
+    .compact-select > summary { height: 30px; padding: 0 8px; font-size: 11.5px; }
     .folder-grid { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
     .subfolder-grid { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
     .folder-card { min-height: 136px; padding: 14px; border-radius: 16px; }
@@ -1096,10 +1215,36 @@
     </div>
 
     <div class="head-actions">
-      <button class="btn manage-btn" id="btn-manage" title="管理：批量选择图片/文件夹、复制、导出">管理</button>
-      <button class="btn" id="btn-share">分享到微信</button>
-      <button class="btn" id="btn-backup" title="导出 / 导入全部数据">备份</button>
-      <button class="btn primary" id="btn-add" title="添加图片或 Markdown 文档">添加</button>
+      <button class="btn manage-btn" id="btn-manage" title="管理：批量选择图片/文件夹、复制、导出">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"></circle><path d="M12 2.6v2.2M12 19.2v2.2M21.4 12h-2.2M4.8 12H2.6M18.6 5.4l-1.6 1.6M7 17l-1.6 1.6M18.6 18.6L17 17M7 7L5.4 5.4"></path></svg>
+        <span>管理</span>
+      </button>
+      <button class="btn action-share" id="btn-share" title="分享到微信">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 11.4a8.4 8.4 0 0 1-12.2 7.5L3.4 20.6l1.8-5a8.4 8.4 0 1 1 15.6-4.2z"></path><path d="M8.6 10.8h6.8M8.6 13.8h4.2"></path></svg>
+        <span>分享到微信</span>
+      </button>
+      <button class="btn action-backup" id="btn-backup" title="导出 / 导入全部数据">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 18.6a4.2 4.2 0 0 1-.5-8.4 6.2 6.2 0 0 1 11.8 1.3 3.6 3.6 0 0 1 .1 7.1z"></path><path d="M12 16.6v-5.2M9.8 13.4 12 11.2l2.2 2.2"></path></svg>
+        <span>备份</span>
+      </button>
+      <details class="more-details" id="more-details">
+        <summary title="更多操作" aria-label="更多操作">⋯</summary>
+        <div class="more-pop">
+          <button type="button" id="mm-share">分享到微信</button>
+          <button type="button" id="mm-backup">备份 / 导入</button>
+          <div class="sep"></div>
+          <button type="button" id="mm-select-all">全选</button>
+          <button type="button" id="mm-copy-rich">复制图文</button>
+          <button type="button" id="mm-copy-text">复制文字</button>
+          <button type="button" id="mm-save-sheet">保存长图</button>
+          <button type="button" id="mm-share-page">分享网页</button>
+          <button type="button" id="mm-zip">导出 ZIP</button>
+        </div>
+      </details>
+      <button class="btn primary" id="btn-add" title="添加图片或 Markdown 文档">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        <span>添加</span>
+      </button>
     </div>
   </header>
 
@@ -1107,11 +1252,11 @@
     <div class="stats" id="stats-images">
       <span>共 <b id="count-total">0</b> 项</span>
       <span class="dot"></span>
-      <span id="count-visible">显示 0 项</span>
-      <span class="dot"></span>
-      <span id="count-done">已完成 0</span>
-      <span class="dot"></span>
-      <span id="scope">操作范围：全部</span>
+      <span id="count-visible" class="stat-secondary">显示 0 张</span>
+      <span class="dot stat-secondary"></span>
+      <span id="count-done" class="stat-secondary">已完成 0</span>
+      <span class="dot stat-secondary"></span>
+      <span id="scope">本组 0 张</span>
     </div>
     <div class="stats" id="stats-folders" hidden>
       <span>共 <b id="folder-total">0</b> 个文件夹</span>
@@ -1130,8 +1275,8 @@
       <button type="button" data-filter="done">已完成</button>
     </div>
     <div class="type-filter" id="type-filter" role="group" aria-label="按类型筛选图片或文档">
-      <label title="显示图片"><input type="checkbox" data-type="image" checked><span>图片</span><span class="tf-count" id="tf-image"></span></label>
-      <label title="显示 Markdown 文档"><input type="checkbox" data-type="doc" checked><span>文档</span><span class="tf-count" id="tf-doc"></span></label>
+      <label title="显示图片"><input type="checkbox" data-type="image" checked><span class="tf-full">图片</span><span class="tf-short">图</span><span class="tf-count" id="tf-image"></span></label>
+      <label title="显示 Markdown 文档"><input type="checkbox" data-type="doc" checked><span class="tf-full">文档</span><span class="tf-short">文</span><span class="tf-count" id="tf-doc"></span></label>
     </div>
     <div class="sort-box">
       <span class="view-caption">排序</span>
@@ -1151,6 +1296,24 @@
         <button type="button" data-view="loose" title="宽松：图片更大">宽松</button>
       </div>
     </div>
+    <details class="compact-select" id="sort-compact">
+      <summary>排序<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></summary>
+      <div class="cs-menu">
+        <button type="button" data-sort="default" class="on">默认（收藏优先）</button>
+        <button type="button" data-sort="name-asc">名称 ↑</button>
+        <button type="button" data-sort="name-desc">名称 ↓</button>
+        <button type="button" data-sort="date-desc">日期 新→旧</button>
+        <button type="button" data-sort="date-asc">日期 旧→新</button>
+      </div>
+    </details>
+    <details class="compact-select" id="view-compact">
+      <summary>视图<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></summary>
+      <div class="cs-menu">
+        <button type="button" data-view="compact">紧凑</button>
+        <button type="button" data-view="standard" class="on">标准</button>
+        <button type="button" data-view="loose">宽松</button>
+      </div>
+    </details>
     <div class="sub-actions">
       <button class="btn small ghost" id="btn-select-all">全选</button>
       <button class="btn small" id="btn-copy-rich">复制图文</button>
@@ -1179,10 +1342,20 @@
   <div class="grid" id="grid" hidden></div>
 
   <section class="empty show" id="empty">
-    <div class="empty-icon">🖼️</div>
+    <div class="empty-icon" aria-hidden="true">
+      <svg viewBox="0 0 126 104" fill="none">
+        <ellipse cx="64" cy="94" rx="47" ry="6.5" fill="#EAEDE2"></ellipse>
+        <rect x="12" y="32" width="50" height="50" rx="9" fill="#F1EBDC" transform="rotate(-8 37 57)"></rect>
+        <rect x="30" y="17" width="71" height="63" rx="10" fill="#FFFDF8" stroke="#E4DECD" stroke-width="1.5"></rect>
+        <circle cx="86" cy="34" r="6.5" fill="#E8C98B"></circle>
+        <path d="M35 69l16-20 11 13 8-9 17 16H35z" fill="#AFC2A3"></path>
+        <path d="M55 69l12-15 9 11 7-6 12 10H55z" fill="#8FA983"></path>
+        <path d="M101 15l3-6M109 21l6-2M94 9l1-7" stroke="#C9D6BE" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
+    </div>
     <h2 id="empty-title">把图片或文档放进来</h2>
     <p id="empty-desc">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴截图，或把图片 / <code>.md</code> 文档拖到窗口里。<br>每张图都能命名、写备注；文档点开会在右侧栏显示内容。</p>
-    <button class="btn primary" id="btn-empty-add">选择图片 / 文档</button>
+    <button class="btn primary" id="btn-empty-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="3"></rect><circle cx="8.6" cy="10" r="1.6"></circle><path d="M3.8 17l4.6-4.6 3.3 3.2 2.7-2.5 5.8 5.1"></path></svg>选择图片 / 文档</button>
   </section>
 </main>
 
@@ -1974,16 +2147,25 @@ function updateNav() {
   });
   const rootIcon = el('span', { class: 'cicon', 'aria-hidden': 'true' });
   rootIcon.innerHTML = CRUMB_FOLDER_ICON;
-  rootBtn.append(rootIcon, el('span', { class: 'cname' }, '全部文件夹'));
+  rootBtn.append(rootIcon, el('span', { class: 'cname cname-full' }, '全部文件夹'), el('span', { class: 'cname cname-short' }, '全部'));
   if (!state.atRoot) rootBtn.addEventListener('click', goRoot);
   if (state.atRoot) rootBtn.setAttribute('aria-current', 'page');
   trail.append(rootBtn);
 
   if (!state.atRoot) {
     const path = folderPath(state.folder);
-    path.forEach((folder, index) => {
+    const compact = window.innerWidth <= 720;
+    const showPath = compact && path.length > 2
+      ? [path[0], ...path.slice(-1)]
+      : path;
+    showPath.forEach((folder, index) => {
       trail.append(el('span', { class: 'crumb-sep', 'aria-hidden': 'true' }, '›'));
-      const current = index === path.length - 1;
+      if (compact && path.length > 2 && index === 1) {
+        const skipped = path.slice(1, -1).map(f => f.name).join(' / ');
+        trail.append(el('span', { class: 'crumb-more', title: skipped }, '…'));
+        trail.append(el('span', { class: 'crumb-sep', 'aria-hidden': 'true' }, '›'));
+      }
+      const current = folder.id === state.folder;
       const btn = el('button', {
         type: 'button',
         class: 'crumb-seg' + (current ? ' current' : ''),
@@ -2018,19 +2200,18 @@ function updateScope() {
     const imgs = state.selected.size;
     if (picked) {
       const total = targets().length;
-      scope.textContent = '管理模式 · 已选 ' + picked + ' 个文件夹（含子文件夹）' +
-        (imgs ? ' + ' + imgs + ' 项' : '') + ' · 共 ' + total + ' 项';
+      scope.textContent = '已选 ' + picked + ' 个文件夹（含子文件夹）' + (imgs ? ' + ' + imgs + ' 项' : '') + ' · 共 ' + total + ' 项';
     } else {
       scope.textContent = imgs
-        ? '管理模式 · 已选 ' + imgs + ' 项'
-        : '管理模式 · 点图片或文件夹选中，或点「全选」';
+        ? '已选 ' + imgs + ' 项'
+        : '点图片或文件夹选中，或点「全选」';
     }
-  } else if (state.search.trim() || state.doneFilter !== 'all') {
+  } else if (state.search.trim() || state.doneFilter !== 'all' || !state.types.image || !state.types.doc) {
     const list = visibleItems();
-    scope.textContent = '操作范围：筛选结果 ' + list.length + ' ' + countUnit(list);
+    scope.textContent = '筛选 ' + list.length + ' ' + countUnit(list);
   } else {
     const list = groupItems(state.group);
-    scope.textContent = '操作范围：本组 ' + list.length + ' ' + countUnit(list);
+    scope.textContent = '本组 ' + list.length + ' ' + countUnit(list);
   }
 }
 
@@ -2042,7 +2223,9 @@ function setManage(on) {
   }
   document.body.classList.toggle('manage', state.manage);
   const btn = $('#btn-manage');
-  btn.textContent = state.manage ? '完成' : '管理';
+  const label = btn.querySelector('span');
+  if (label) label.textContent = state.manage ? '完成' : '管理';
+  else btn.textContent = state.manage ? '完成' : '管理';
   btn.title = state.manage ? '退出管理模式' : '管理：批量选择图片/文件夹、复制、导出';
   btn.setAttribute('aria-pressed', state.manage ? 'true' : 'false');
   render();
@@ -2057,6 +2240,7 @@ function setView(view) {
   $$('#view-switch button').forEach(btn => {
     btn.classList.toggle('on', btn.dataset.view === v);
   });
+  syncCompactMenus();
   try { localStorage.setItem('picnote-view', v); } catch (err) {}
 }
 
@@ -2065,10 +2249,24 @@ function setSort(mode, persist = true) {
   state.sort = value;
   const select = $('#sort-select');
   if (select) select.value = value;
+  syncCompactMenus();
   if (persist) {
     try { localStorage.setItem('picnote-sort', value); } catch (err) {}
   }
   render();
+}
+
+function syncCompactMenus() {
+  $$('#sort-compact .cs-menu button').forEach(btn => {
+    btn.classList.toggle('on', btn.dataset.sort === state.sort);
+  });
+  $$('#view-compact .cs-menu button').forEach(btn => {
+    btn.classList.toggle('on', btn.dataset.view === state.view);
+  });
+}
+
+function closePopovers() {
+  $$('details.more-details[open], details.compact-select[open]').forEach(d => d.removeAttribute('open'));
 }
 
 function updateSelectionBar() {
@@ -2429,7 +2627,9 @@ function resetManageState() {
   document.body.classList.remove('manage');
   const btn = $('#btn-manage');
   if (btn) {
-    btn.textContent = '管理';
+    const label = btn.querySelector('span');
+    if (label) label.textContent = '管理';
+    else btn.textContent = '管理';
     btn.title = '管理：批量选择图片/文件夹、复制、导出';
     btn.setAttribute('aria-pressed', 'false');
   }
@@ -7090,7 +7290,7 @@ function bindEvents() {
     if (e.target === $('#image-folder-move-modal')) closeImageFolderMoveModal();
   });
   $$('.picker-confirm').forEach(btn => btn.addEventListener('click', confirmFolderPicker));
-  window.addEventListener('resize', () => { closeFolderMenu(); closeImageMenu(); });
+  window.addEventListener('resize', () => { closeFolderMenu(); closeImageMenu(); updateNav(); });
 
   // 管理模式
   $('#btn-manage').addEventListener('click', () => setManage(!state.manage));
@@ -7103,6 +7303,45 @@ function bindEvents() {
 
   // 排序
   $('#sort-select').addEventListener('change', e => setSort(e.target.value));
+
+  // 小窗口：排序 / 视图下拉
+  $('#sort-compact').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-sort]');
+    if (!btn) return;
+    closePopovers();
+    setSort(btn.dataset.sort);
+  });
+  $('#view-compact').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-view]');
+    if (!btn) return;
+    closePopovers();
+    setView(btn.dataset.view);
+  });
+  $$('details.more-details, details.compact-select').forEach(d => {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      $$('details[open]').forEach(other => { if (other !== d) other.open = false; });
+    });
+  });
+  document.addEventListener('click', e => {
+    if (e.target.closest('details.more-details') || e.target.closest('details.compact-select')) return;
+    closePopovers();
+  });
+  $('#more-details').addEventListener('click', e => {
+    const btn = e.target.closest('.more-pop button');
+    if (!btn) return;
+    closePopovers();
+    switch (btn.id) {
+      case 'mm-share': openShare(); break;
+      case 'mm-backup': openBackup(); break;
+      case 'mm-select-all': $('#btn-select-all').click(); break;
+      case 'mm-copy-rich': $('#btn-copy-rich').click(); break;
+      case 'mm-copy-text': $('#btn-copy-text').click(); break;
+      case 'mm-save-sheet': $('#btn-save-sheet').click(); break;
+      case 'mm-share-page': $('#btn-share-page').click(); break;
+      case 'mm-zip': $('#btn-zip').click(); break;
+    }
+  });
 
   // 全选
   $('#btn-select-all').addEventListener('click', () => {
@@ -7300,6 +7539,7 @@ function bindEvents() {
   document.addEventListener('keydown', e => {
     const t = e.target;
     const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    if (e.key === 'Escape' && t && t.id === 'search') { t.blur(); return; }
     if (typing && e.key !== 'Escape') return;
     if (cropOpen()) {
       if (e.key === 'Escape') {
@@ -7518,6 +7758,7 @@ async function init() {
   }
   updateDoneFilterUI();
   updateTypeFilterUI();
+  syncCompactMenus();
   render();
   cleanupTempBackups().catch(() => {});
 }
