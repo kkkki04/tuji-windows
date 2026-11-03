@@ -27,6 +27,7 @@ namespace TuJi
 
         private static string _appRoot;
         private static Mutex _mutex;
+        private static Size _lastNormalClient = Size.Empty;
 
         [STAThread]
         private static void Main()
@@ -95,6 +96,70 @@ namespace TuJi
                 "TuJiApp");
         }
 
+        // 窗口大小保存在数据目录的 window.ini；位置不保存，启动时仍居中。
+        private static string WindowStatePath
+        {
+            get { return Path.Combine(_appRoot, "window.ini"); }
+        }
+
+        private static void LoadWindowState(Form form)
+        {
+            int width = 0, height = 0, maximized = 0;
+            try
+            {
+                foreach (string line in File.ReadAllLines(WindowStatePath))
+                {
+                    int eq = line.IndexOf('=');
+                    if (eq <= 0) continue;
+                    string key = line.Substring(0, eq).Trim();
+                    string value = line.Substring(eq + 1).Trim();
+                    int n;
+                    if (!int.TryParse(value, out n)) continue;
+                    if (key == "width") width = n;
+                    else if (key == "height") height = n;
+                    else if (key == "maximized") maximized = n;
+                }
+            }
+            catch { }
+
+            int minW = form.MinimumSize.Width;
+            int minH = form.MinimumSize.Height;
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            if (width >= minW && height >= minH)
+            {
+                width = Math.Min(width, Math.Max(minW, work.Width));
+                height = Math.Min(height, Math.Max(minH, work.Height));
+                form.ClientSize = new Size(width, height);
+            }
+            _lastNormalClient = form.ClientSize;
+
+            if (maximized == 1)
+            {
+                form.Shown += delegate { form.WindowState = FormWindowState.Maximized; };
+            }
+        }
+
+        private static void SaveWindowState(Form form)
+        {
+            try
+            {
+                bool maximized = form.WindowState == FormWindowState.Maximized;
+                Size size = maximized ? _lastNormalClient : form.ClientSize;
+                if (size.Width < form.MinimumSize.Width || size.Height < form.MinimumSize.Height)
+                {
+                    size = new Size(1280, 860);
+                }
+                string[] lines = new string[]
+                {
+                    "width=" + size.Width,
+                    "height=" + size.Height,
+                    "maximized=" + (maximized ? 1 : 0)
+                };
+                File.WriteAllLines(WindowStatePath, lines, new System.Text.UTF8Encoding(false));
+            }
+            catch { }
+        }
+
         private static void Start()
         {
             string binDir = Path.Combine(_appRoot, "bin");
@@ -123,6 +188,14 @@ namespace TuJi
             form.StartPosition = FormStartPosition.CenterScreen;
             form.BackColor = Color.FromArgb(247, 245, 240);
             try { form.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
+
+            form.Resize += delegate
+            {
+                if (form.WindowState == FormWindowState.Normal)
+                    _lastNormalClient = form.ClientSize;
+            };
+            form.FormClosing += delegate { SaveWindowState(form); };
+            LoadWindowState(form);
 
             WebView2 web = new WebView2();
             web.Dock = DockStyle.Fill;
