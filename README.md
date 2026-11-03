@@ -10,12 +10,12 @@
 
 ## 下载 Windows 安装包
 
-- 本次品牌升级的本地构建：`E:\OP\序集.exe`（1,388,544 字节，单文件免安装）
+- 发布页：https://github.com/kkkki04/tuji-windows/releases/tag/v1.0.0
+- 文件：`XUJI-Windows-x64-v1.0.0.exe`（1,388,544 字节，单文件免安装）
 - SHA-256：`8B91A790A5C1E65ECE221C6FE817D0EA3CB7358D54491F5B7AA65BCB6C570259`
-- 旧的 `E:\OP\图记.exe` 原样保留，没有覆盖；两个 exe 共用 `图记数据\`，可读取同一份数据。
-- 序集版源码已同步到 GitHub；安装包当前为本地产物，GitHub Release 尚未替换。
-- 序集 Mac 安装包已构建：`E:\OP\序集Mac\序集-1.0.0-arm64.dmg`（121,461,328 字节）
-  SHA-256 `25CA4C4F77F20D8CF28E0E16BEF0B348412546EDB62F37996BF4A83685A92FD6`
+- 旧的 `图记.exe` / `图记Mac` 本地保留作回退；新旧 exe 共用 `图记数据\`，读取同一份数据。
+- macOS 安装包在另一个仓库：https://github.com/kkkki04/tuji-mac/releases/tag/v1.0.0
+  （`XUJI-macOS-arm64-v1.0.0.dmg` / `.zip`）
 
 > 两个仓库都是私有的，需要登录 GitHub 账号 **kkkki04** 才能下载。
 > 如果打开仓库首页看不到安装包，请点右侧的 **Releases**，或直接用上面的发布页链接。
