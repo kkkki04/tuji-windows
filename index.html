@@ -92,6 +92,7 @@
 
   .head-actions { display: flex; align-items: center; gap: 8px; flex: none; min-width: 0; }
   .btn > svg { width: 16px; height: 16px; display: block; flex: none; opacity: .85; }
+  .btn > svg.wechat-icon { color: #4ea852; opacity: 1; width: 17px; height: 17px; }
   .btn.primary > svg { opacity: 1; }
 
   /* ---------------- 按钮 ---------------- */
@@ -1052,7 +1053,7 @@
   .compact-select[open] > summary > svg { transform: rotate(180deg); }
   .cs-menu {
     position: absolute; right: 0; top: calc(100% + 7px); z-index: 75;
-    min-width: 158px; padding: 5px;
+    width: max-content; min-width: 0; max-width: 240px; padding: 5px;
     display: flex; flex-direction: column; gap: 1px;
     background: #fff; border-radius: 14px; box-shadow: var(--shadow-lg);
   }
@@ -1220,7 +1221,7 @@
         <span>管理</span>
       </button>
       <button class="btn action-share" id="btn-share" title="分享到微信">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 11.4a8.4 8.4 0 0 1-12.2 7.5L3.4 20.6l1.8-5a8.4 8.4 0 1 1 15.6-4.2z"></path><path d="M8.6 10.8h6.8M8.6 13.8h4.2"></path></svg>
+        <svg class="wechat-icon" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.022-3.486.582-4.684 1.578-1.28 1.063-1.94 2.56-1.94 4.146 0 1.586.66 3.083 1.94 4.146 1.198.996 2.887 1.6 4.684 1.578 1.798.022 3.486-.582 4.684-1.578 1.28-1.063 1.94-2.56 1.94-4.146 0-1.586-.66-3.083-1.94-4.146-1.198-.996-2.887-1.6-4.684-1.578zm-2.9 2.36c.536 0 .97.44.97.981 0 .54-.434.981-.97.981-.536 0-.97-.44-.97-.981 0-.54.434-.981.97-.981zm5.8 0c.536 0 .97.44.97.981 0 .54-.434.981-.97.981-.536 0-.97-.44-.97-.981 0-.54.434-.981.97-.981z"></path></svg>
         <span>分享到微信</span>
       </button>
       <button class="btn action-backup" id="btn-backup" title="导出 / 导入全部数据">
@@ -1284,8 +1285,8 @@
         <option value="default">默认（收藏优先）</option>
         <option value="name-asc">名称 ↑</option>
         <option value="name-desc">名称 ↓</option>
-        <option value="date-desc">日期 新→旧</option>
-        <option value="date-asc">日期 旧→新</option>
+        <option value="date-asc">日期 ↑</option>
+        <option value="date-desc">日期 ↓</option>
       </select>
     </div>
     <div class="view-size">
@@ -1302,8 +1303,8 @@
         <button type="button" data-sort="default" class="on">默认（收藏优先）</button>
         <button type="button" data-sort="name-asc">名称 ↑</button>
         <button type="button" data-sort="name-desc">名称 ↓</button>
-        <button type="button" data-sort="date-desc">日期 新→旧</button>
-        <button type="button" data-sort="date-asc">日期 旧→新</button>
+        <button type="button" data-sort="date-asc">日期 ↑</button>
+        <button type="button" data-sort="date-desc">日期 ↓</button>
       </div>
     </details>
     <details class="compact-select" id="view-compact">
