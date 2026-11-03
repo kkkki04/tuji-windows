@@ -276,8 +276,7 @@
   .subfolder-grid .folder-card-top { min-height: 46px; }
   .subfolder-grid .folder-name { margin-top: 9px; font-size: 14.5px; }
   body.at-root .groupbar { display: none; }
-  body.at-root .done-filter, body.at-root .view-size { display: none; }
-
+  body.at-root .done-filter, body.at-root .type-filter, body.at-root .view-size { display: none; }
   .grid {
     display: grid; gap: var(--grid-gap);
     grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
@@ -333,6 +332,51 @@
     transition: transform .45s cubic-bezier(.2,.7,.3,1);
   }
   .card:hover .thumb img { transform: scale(1.025); }
+
+  /* ---------------- 文档卡片缩略图 ---------------- */
+  .doc-thumb {
+    position: absolute; inset: 0;
+    display: flex; align-items: stretch; justify-content: stretch;
+    padding: 16px 18px;
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgba(233, 239, 227, .9) 0%, rgba(247, 246, 241, 0) 62%),
+      linear-gradient(160deg, #f2efe8 0%, #e9e5db 100%);
+  }
+  .doc-paper {
+    position: relative; flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 7px;
+    padding: 18px 18px 16px;
+    background: #fffdf9; border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(60, 50, 30, .05), 0 12px 26px rgba(60, 50, 30, .08);
+    overflow: hidden;
+    transition: transform .45s cubic-bezier(.2,.7,.3,1);
+  }
+  .card:hover .doc-paper { transform: translateY(-1px) scale(1.012); }
+  .doc-paper::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: linear-gradient(180deg, var(--accent) 0%, #9fb392 100%);
+    opacity: .55;
+  }
+  .doc-badge {
+    align-self: flex-start;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: .8px;
+    color: var(--accent-ink); background: var(--accent-soft);
+    padding: 3px 8px; border-radius: 999px;
+  }
+  .doc-badge::before { content: "◇"; font-size: 9px; }
+  .doc-title {
+    font-family: var(--serif); font-size: 17px; font-weight: 600; line-height: 1.4;
+    color: var(--ink); letter-spacing: .2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .doc-excerpt {
+    font-size: 11.5px; line-height: 1.7; color: #8f887a;
+    display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .doc-thumb .doc-empty { color: var(--muted-2); font-size: 12px; }
+  .card.done .doc-paper { opacity: .55; filter: grayscale(.35); }
 
   .check {
     position: absolute; top: 10px; left: 10px;
@@ -707,6 +751,30 @@
   .done-filter button.on { background: #fff; color: var(--ink); font-weight: 600; box-shadow: var(--shadow-sm); }
   .done-filter button.on[data-filter="done"] { color: var(--accent-ink); }
 
+  /* ---------------- 类型筛选（图片 / 文档） ---------------- */
+  .type-filter {
+    display: inline-flex; align-items: center; padding: 3px; gap: 2px;
+    background: var(--bg-soft); border-radius: 11px; flex: none;
+  }
+  .type-filter label {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 11px; border-radius: 8px;
+    font-size: 12.5px; color: var(--muted); cursor: pointer;
+    transition: background .15s, color .15s, box-shadow .15s;
+    user-select: none; white-space: nowrap;
+  }
+  .type-filter label:hover { color: var(--ink); }
+  .type-filter input {
+    width: 13px; height: 13px; margin: 0; accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .type-filter label:has(input:checked) {
+    background: #fff; color: var(--ink); font-weight: 600;
+    box-shadow: var(--shadow-sm);
+  }
+  .type-filter .tf-count { color: var(--muted-2); font-weight: 500; font-size: 11px; }
+  .type-filter label:has(input:checked) .tf-count { color: var(--accent); }
+
   .view-size { display: inline-flex; align-items: center; gap: 6px; flex: none; }
   .view-caption { font-size: 12px; color: var(--muted-2); }
   .view-switch {
@@ -831,6 +899,128 @@
   .ctx-menu button.danger { color: var(--danger); }
   .ctx-menu button.danger:hover { background: #f9ece8; }
 
+  /* ---------------- 文档右侧栏 ---------------- */
+  .doc-panel {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 90;
+    width: min(640px, 92vw);
+    display: flex; flex-direction: column;
+    background: #fffdf9;
+    border-radius: 22px 0 0 22px;
+    box-shadow: -18px 0 60px rgba(45, 40, 30, .16);
+    transform: translateX(104%);
+    transition: transform .32s cubic-bezier(.22,.8,.3,1), visibility .32s;
+    visibility: hidden;
+  }
+  .doc-panel.open { transform: none; visibility: visible; }
+  .doc-panel-head {
+    flex: none; display: flex; align-items: flex-start; gap: 14px;
+    padding: 24px 24px 16px 28px;
+    border-bottom: 0;
+    background: linear-gradient(180deg, #fffefb 0%, rgba(255, 253, 249, .92) 78%, rgba(255, 253, 249, 0) 100%);
+  }
+  .doc-panel-titles { flex: 1; min-width: 0; }
+  .doc-kicker {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--accent-ink); background: var(--accent-soft);
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .doc-panel h2 {
+    margin: 9px 0 5px; font-family: var(--serif); font-size: 23px; line-height: 1.35;
+    font-weight: 600; color: var(--ink); letter-spacing: .2px;
+    word-break: break-word;
+  }
+  .doc-panel-sub { font-size: 12px; color: var(--muted-2); }
+  .doc-panel-actions { display: flex; align-items: center; gap: 4px; flex: none; }
+  .doc-panel-actions button {
+    border: 0; border-radius: 10px; background: var(--bg-soft);
+    color: var(--ink-2); font-size: 12.5px; height: 32px; padding: 0 11px;
+    cursor: pointer; font-family: inherit; transition: background .15s, color .15s;
+  }
+  .doc-panel-actions button:hover { background: #e7e3da; color: var(--ink); }
+  .doc-panel-actions .doc-close {
+    width: 32px; padding: 0; font-size: 19px; line-height: 1;
+    background: transparent; color: var(--muted);
+  }
+  .doc-panel-actions .doc-close:hover { background: var(--bg-soft); color: var(--ink); }
+  .doc-panel-body {
+    flex: 1; overflow-y: auto; padding: 8px 34px 60px 30px;
+    scrollbar-width: thin;
+  }
+  .doc-panel-body::-webkit-scrollbar { width: 8px; }
+  .doc-panel-body::-webkit-scrollbar-thumb { background: #e0dbcf; border-radius: 99px; }
+
+  /* Markdown 排版 */
+  .md {
+    font-size: 15px; line-height: 1.9; color: #3c3830;
+    word-break: break-word;
+  }
+  .md > :first-child { margin-top: 4px; }
+  .md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
+    font-family: var(--serif); color: var(--ink); font-weight: 600;
+    line-height: 1.45; letter-spacing: .2px;
+    margin: 30px 0 10px;
+  }
+  .md h1 { font-size: 27px; margin-top: 10px; }
+  .md h2 { font-size: 22px; padding-bottom: 8px; border-bottom: 0; }
+  .md h3 { font-size: 18.5px; }
+  .md h4 { font-size: 16.5px; }
+  .md h5, .md h6 { font-size: 15px; color: var(--ink-2); }
+  .md p { margin: 0 0 14px; }
+  .md ul, .md ol { margin: 0 0 14px; padding-left: 24px; }
+  .md li { margin: 4px 0; }
+  .md li > ul, .md li > ol { margin: 4px 0 6px; }
+  .md a { color: var(--accent-dark); text-decoration: underline; text-decoration-color: rgba(95,124,86,.35); text-underline-offset: 3px; }
+  .md a:hover { color: var(--accent); }
+  .md strong { color: var(--ink); font-weight: 600; }
+  .md del { color: var(--muted-2); }
+  .md hr { border: 0; height: 1px; background: var(--line); margin: 26px 0; }
+  .md blockquote {
+    margin: 0 0 16px; padding: 12px 18px;
+    background: #f4f2ea; border-radius: 0 12px 12px 0;
+    box-shadow: inset 3px 0 0 rgba(95, 124, 86, .45);
+    color: #5d584e;
+  }
+  .md blockquote p:last-child { margin-bottom: 0; }
+  .md code {
+    font-family: "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: .9em; background: #f0ede5; color: #4a5c43;
+    padding: 2px 6px; border-radius: 6px;
+  }
+  .md .md-code {
+    margin: 0 0 18px; border-radius: 14px; overflow: hidden;
+    background: #2f2d29; box-shadow: 0 10px 26px rgba(40, 36, 28, .14);
+  }
+  .md .md-code-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px 8px 16px;
+    font-size: 11px; letter-spacing: .4px; color: #a8a196; text-transform: lowercase;
+  }
+  .md .md-code-bar button {
+    border: 0; border-radius: 7px; background: rgba(255,255,255,.09);
+    color: #ded8cc; font-size: 11px; padding: 4px 9px; cursor: pointer; font-family: inherit;
+  }
+  .md .md-code-bar button:hover { background: rgba(255,255,255,.18); color: #fff; }
+  .md .md-code pre { margin: 0; padding: 4px 18px 18px; overflow-x: auto; }
+  .md .md-code code {
+    background: transparent; color: #e9e4d9; padding: 0; border-radius: 0;
+    font-size: 12.8px; line-height: 1.75; white-space: pre;
+  }
+  .md table { width: 100%; border-collapse: collapse; margin: 0 0 18px; font-size: 13.5px; }
+  .md th, .md td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .md th { background: #f4f2ea; color: var(--ink-2); font-weight: 600; }
+  .md tr:last-child td { border-bottom: 0; }
+  .md .md-img { color: var(--muted); background: var(--bg-soft); padding: 2px 7px; border-radius: 6px; font-size: 12.5px; }
+  .md .md-task { color: var(--accent); font-weight: 700; }
+  .doc-panel-empty { color: var(--muted); font-size: 14px; padding: 30px 0; text-align: center; }
+
+  @media (max-width: 620px) {
+    .doc-panel { width: 100vw; border-radius: 0; }
+    .doc-panel-head { padding: 18px 16px 12px 18px; }
+    .doc-panel-body { padding: 6px 20px 40px 18px; }
+    .doc-panel h2 { font-size: 20px; }
+  }
+
   /* ---------------- 响应式 ---------------- */
   @media (max-width: 900px) {
     .app-header { flex-wrap: wrap; padding: 14px 18px 6px; }
@@ -908,15 +1098,15 @@
       <button class="btn manage-btn" id="btn-manage" title="管理：批量选择图片/文件夹、复制、导出">管理</button>
       <button class="btn" id="btn-share">分享到微信</button>
       <button class="btn" id="btn-backup" title="导出 / 导入全部数据">备份</button>
-      <button class="btn primary" id="btn-add">添加图片</button>
+      <button class="btn primary" id="btn-add" title="添加图片或 Markdown 文档">添加</button>
     </div>
   </header>
 
   <div class="subbar">
     <div class="stats" id="stats-images">
-      <span>共 <b id="count-total">0</b> 张</span>
+      <span>共 <b id="count-total">0</b> 项</span>
       <span class="dot"></span>
-      <span id="count-visible">显示 0 张</span>
+      <span id="count-visible">显示 0 项</span>
       <span class="dot"></span>
       <span id="count-done">已完成 0</span>
       <span class="dot"></span>
@@ -937,6 +1127,10 @@
       <button type="button" data-filter="all" class="on">全部</button>
       <button type="button" data-filter="todo">未完成</button>
       <button type="button" data-filter="done">已完成</button>
+    </div>
+    <div class="type-filter" id="type-filter" role="group" aria-label="按类型筛选图片或文档">
+      <label title="显示图片"><input type="checkbox" data-type="image" checked><span>图片</span><span class="tf-count" id="tf-image"></span></label>
+      <label title="显示 Markdown 文档"><input type="checkbox" data-type="doc" checked><span>文档</span><span class="tf-count" id="tf-doc"></span></label>
     </div>
     <div class="sort-box">
       <span class="view-caption">排序</span>
@@ -985,13 +1179,13 @@
 
   <section class="empty show" id="empty">
     <div class="empty-icon">🖼️</div>
-    <h2 id="empty-title">把图片粘进来</h2>
-    <p id="empty-desc">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴截图，或把图片文件拖到窗口里。<br>每张图都能命名、写备注，然后一键复制分享到微信。</p>
-    <button class="btn primary" id="btn-empty-add">选择图片文件</button>
+    <h2 id="empty-title">把图片或文档放进来</h2>
+    <p id="empty-desc">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴截图，或把图片 / <code>.md</code> 文档拖到窗口里。<br>每张图都能命名、写备注；文档点开会在右侧栏显示内容。</p>
+    <button class="btn primary" id="btn-empty-add">选择图片 / 文档</button>
   </section>
 </main>
 
-<input type="file" id="file-input" accept="image/*" multiple hidden>
+<input type="file" id="file-input" accept="image/*,.md,.markdown,.mdown,.mkd,text/markdown,text/plain" multiple hidden>
 
 <div class="groupbar" id="groupbar">
   <div class="gtabs" id="gtabs"></div>
@@ -1000,13 +1194,29 @@
 </div>
 
 <div class="selbar" id="selbar">
-  <span class="count" id="sel-count">已选 0 张</span>
+  <span class="count" id="sel-count">已选 0 项</span>
   <button class="btn" id="sel-done">标记完成</button>
   <button class="btn" id="sel-move-folder">移动到文件夹</button>
   <button class="btn" id="sel-move">移动到分组</button>
   <button class="btn danger" id="sel-delete">删除</button>
   <button class="btn ghost" id="sel-clear">取消选择</button>
 </div>
+
+<aside class="doc-panel" id="doc-panel" aria-label="文档预览" aria-hidden="true">
+  <header class="doc-panel-head">
+    <div class="doc-panel-titles">
+      <span class="doc-kicker">文档</span>
+      <h2 id="doc-panel-title">文档</h2>
+      <div class="doc-panel-sub" id="doc-panel-sub"></div>
+    </div>
+    <div class="doc-panel-actions">
+      <button type="button" id="doc-panel-copy" title="复制 Markdown 原文">复制</button>
+      <button type="button" id="doc-panel-download" title="下载 .md 文件">下载</button>
+      <button type="button" class="doc-close" id="doc-panel-close" title="关闭（Esc）" aria-label="关闭">×</button>
+    </div>
+  </header>
+  <div class="doc-panel-body md" id="doc-panel-body"></div>
+</aside>
 
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="图片预览">
   <button class="lb-close" id="lb-close" title="关闭">×</button>
@@ -1155,7 +1365,7 @@
 <div class="modal-mask" id="backup-modal">
   <div class="modal">
     <h3>数据备份</h3>
-    <p class="sub">把全部文件夹、分组、图片和备注导出成一个文件。新版使用流式 .jsonl 备份，图片很多也不会白屏；导入时仍会把内容追加到现有数据，不会覆盖已有文件夹和图片。</p>
+    <p class="sub">把全部文件夹、分组、图片、Markdown 文档和备注导出成一个文件。新版使用流式 .jsonl 备份，图片很多也不会白屏；导入时仍会把内容追加到现有数据，不会覆盖已有文件夹和内容。</p>
     <div class="share-actions">
       <button class="btn primary wide" id="backup-export">⬇ 导出全部数据（.jsonl 推荐）</button>
       <button class="btn wide" id="backup-import">⬆ 导入备份（追加）</button>
@@ -1167,9 +1377,9 @@
         <li>在这台电脑点「导出全部数据（.jsonl 推荐）」，会下载一个 <code>图记备份_日期.jsonl</code></li>
         <li>文件很大时，先把它压缩成 <code>.zip</code> 再发；微信里请按「文件」发送，不要按图片发送</li>
         <li>在新电脑打开图记，点「备份」→「导入备份（追加）」，选 <code>.jsonl</code>（压缩过就先解压）</li>
-        <li>导入会把备份里的文件夹、分组和图片追加到当前数据中，不会覆盖现有内容；同名文件夹会自动加「导入」后缀</li>
+        <li>导入会把备份里的文件夹、分组、图片和文档追加到当前数据中，不会覆盖现有内容；同名文件夹会自动加「导入」后缀</li>
       </ol>
-      <div style="margin-top:6px;color:#8a8578;">备份包含图片原图、名称、备注、完成状态、分组、文件夹层级和收藏。导出或导入过程中请不要关闭图记；图片很多时慢一些属正常现象。</div>
+      <div style="margin-top:6px;color:#8a8578;">备份包含图片原图、Markdown 文档内容、名称、备注、完成状态、分组、文件夹层级和收藏。导出或导入过程中请不要关闭图记；图片很多时慢一些属正常现象。</div>
     </div>
     <div class="modal-actions">
       <button class="btn ghost" id="backup-close">关闭</button>
@@ -1179,7 +1389,7 @@
 <input type="file" id="backup-input" accept=".json,.jsonl,.jsonlines,.ndjson,application/json,application/x-ndjson" hidden>
 
 <div class="busy" id="busy"><div class="spinner"></div><div id="busy-text">正在处理…</div></div>
-<div class="drop" id="drop">松开鼠标，添加图片<small>支持一次拖入多张</small></div>
+<div class="drop" id="drop">松开鼠标，添加图片或文档<small>支持一次拖入多个文件 / 整个文件夹</small></div>
 <div id="toasts" aria-live="polite"></div>
 
 <script>
@@ -1297,6 +1507,8 @@ const state = {
   groupMap: {},       // folderId -> 上次所在分组 id
   group: '',          // 当前分组 id
   doneFilter: 'all',  // all | todo | done
+  types: { image: true, doc: true }, // 类型筛选：图片 / 文档
+  docId: null,        // 右侧栏正在显示的文档 id
   manage: false,      // 管理模式：点图片或文件夹选中，顶部显示批量操作
   view: 'standard',   // compact | standard | loose
   sort: 'default',    // default | name-asc | name-desc | date-desc | date-asc
@@ -1403,6 +1615,26 @@ function groupCounts(groupId) {
   return { total: list.length, done: list.filter(i => i.done).length };
 }
 
+/* ---------- 图片 / 文档 ---------- */
+function isDoc(item) {
+  if (!item) return false;
+  if (item.kind === 'doc') return true;
+  if (item.kind === 'image') return false;
+  const type = String((item.blob && item.blob.type) || item.mime || '').toLowerCase();
+  return type === 'text/markdown' || type === 'text/x-markdown' || type === 'text/plain-md';
+}
+function isImageItem(item) { return !!item && !isDoc(item); }
+function backupItemKind(raw, blob) {
+  if (raw && raw.kind === 'doc') return 'doc';
+  if (raw && raw.kind === 'image') return 'image';
+  const mime = String((blob && blob.type) || (raw && (raw.mime || raw.type)) || '').toLowerCase();
+  return mime === 'text/markdown' || mime === 'text/x-markdown' ? 'doc' : 'image';
+}
+function countUnit(list) {
+  const arr = Array.isArray(list) ? list : [];
+  return arr.some(isDoc) ? '项' : '张';
+}
+
 function sortItems() {
   state.items.sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || (b.created - a.created));
 }
@@ -1447,6 +1679,7 @@ function sortFolderList(list) {
 
 function visibleItems() {
   let list = groupItems(state.group);
+  list = list.filter(i => isDoc(i) ? state.types.doc : state.types.image);
   if (state.doneFilter === 'todo') list = list.filter(i => !i.done);
   else if (state.doneFilter === 'done') list = list.filter(i => i.done);
   const q = state.search.trim().toLowerCase();
@@ -1674,7 +1907,7 @@ function render() {
   $('#subfolder-view').hidden = atRoot;
   $('#folder-filter').hidden = !atRoot;
   $('#grid').hidden = atRoot;
-  $('#search').placeholder = atRoot ? '搜索文件夹…' : '搜索子文件夹或图片…';
+  $('#search').placeholder = atRoot ? '搜索文件夹…' : '搜索子文件夹、图片或文档…';
   updateNav();
 
   if (atRoot) {
@@ -1703,9 +1936,19 @@ function render() {
   for (const item of visible) grid.append(buildCard(item));
 
   const counts = groupCounts(state.group);
+  const groupList = groupItems(state.group);
+  const typeCounts = {
+    image: groupList.filter(isImageItem).length,
+    doc: groupList.filter(isDoc).length
+  };
+  const tfImage = $('#tf-image');
+  const tfDoc = $('#tf-doc');
+  if (tfImage) tfImage.textContent = typeCounts.image;
+  if (tfDoc) tfDoc.textContent = typeCounts.doc;
   $('#count-total').textContent = counts.total;
-  $('#count-visible').textContent = '显示 ' + visible.length + ' 张';
+  $('#count-visible').textContent = '显示 ' + visible.length + ' ' + countUnit(visible);
   $('#count-done').textContent = '已完成 ' + counts.done;
+  updateTypeFilterUI();
 
   updateScope();
   updateSelectionBar();
@@ -1775,16 +2018,18 @@ function updateScope() {
     if (picked) {
       const total = targets().length;
       scope.textContent = '管理模式 · 已选 ' + picked + ' 个文件夹（含子文件夹）' +
-        (imgs ? ' + ' + imgs + ' 张图片' : '') + ' · 共 ' + total + ' 张';
+        (imgs ? ' + ' + imgs + ' 项' : '') + ' · 共 ' + total + ' 项';
     } else {
       scope.textContent = imgs
-        ? '管理模式 · 已选 ' + imgs + ' 张'
+        ? '管理模式 · 已选 ' + imgs + ' 项'
         : '管理模式 · 点图片或文件夹选中，或点「全选」';
     }
   } else if (state.search.trim() || state.doneFilter !== 'all') {
-    scope.textContent = '操作范围：筛选结果 ' + visibleItems().length + ' 张';
+    const list = visibleItems();
+    scope.textContent = '操作范围：筛选结果 ' + list.length + ' ' + countUnit(list);
   } else {
-    scope.textContent = '操作范围：本组 ' + groupItems(state.group).length + ' 张';
+    const list = groupItems(state.group);
+    scope.textContent = '操作范围：本组 ' + list.length + ' ' + countUnit(list);
   }
 }
 
@@ -1833,9 +2078,9 @@ function updateSelectionBar() {
   if (picked) {
     const total = targets().length;
     $('#sel-count').textContent = '已选 ' + picked + ' 个文件夹（含子文件夹）' +
-      (imgs ? ' + ' + imgs + ' 张' : '') + ' · 共 ' + total + ' 张';
+      (imgs ? ' + ' + imgs + ' 项' : '') + ' · 共 ' + total + ' 项';
   } else {
-    $('#sel-count').textContent = '已选 ' + imgs + ' 张';
+    $('#sel-count').textContent = '已选 ' + imgs + ' 项';
   }
   const imageOnly = picked > 0;
   for (const id of ['#sel-done', '#sel-move-folder', '#sel-move', '#sel-delete']) {
@@ -1857,16 +2102,16 @@ function updateEmpty(visibleCount) {
   if (visibleCount > 0) return;
   const inGroup = groupItems(state.group).length;
   if (!state.items.length) {
-    $('#empty-title').textContent = '把图片粘进来';
-    $('#empty-desc').innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴截图，或把图片文件拖到窗口里。<br>每张图都能命名、写备注，然后一键复制分享到微信。';
+    $('#empty-title').textContent = '把图片或文档放进来';
+    $('#empty-desc').innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴截图，或把图片 / <code>.md</code> 文档拖到窗口里。<br>文档点开会在右侧栏显示内容。';
     $('#btn-empty-add').style.display = '';
   } else if (!inGroup) {
-    $('#empty-title').textContent = '这个分组还没有图片';
-    $('#empty-desc').innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴到这里，或把图片拖进来。<br>也可以把其他分组或其他文件夹里的图片「移动」进来。';
+    $('#empty-title').textContent = '这个分组还没有内容';
+    $('#empty-desc').innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴到这里，或把图片 / 文档拖进来。<br>也可以把其他分组或其他文件夹里的内容「移动」进来。';
     $('#btn-empty-add').style.display = '';
   } else {
-    $('#empty-title').textContent = '没有找到匹配的图片';
-    $('#empty-desc').textContent = '换个关键词，或切换上方的「全部 / 未完成 / 已完成」。';
+    $('#empty-title').textContent = '没有找到匹配的内容';
+    $('#empty-desc').textContent = '换个关键词、切换完成状态，或检查上方的「图片 / 文档」勾选。';
     $('#btn-empty-add').style.display = 'none';
   }
 }
@@ -1969,6 +2214,12 @@ async function reorderGroup(fromId, toId, after) {
 function updateDoneFilterUI() {
   $$('#done-filter button').forEach(btn => {
     btn.classList.toggle('on', btn.dataset.filter === state.doneFilter);
+  });
+}
+
+function updateTypeFilterUI() {
+  $$('#type-filter input[data-type]').forEach(input => {
+    input.checked = !!state.types[input.dataset.type];
   });
 }
 
@@ -2112,7 +2363,7 @@ async function deleteGroup(group) {
   if (list.length <= 1) { toast('每个文件夹至少保留一个分组', 'error'); return; }
   const count = groupItems(group.id).length;
   if (count) {
-    toast('「' + group.name + '」里还有 ' + count + ' 张图片，先移动或删除后再删分组', 'error');
+    toast('「' + group.name + '」里还有 ' + count + ' 项内容，先移动或删除后再删分组', 'error');
     return;
   }
   const ok = await confirmDialog({
@@ -2306,7 +2557,7 @@ function buildFolderCard(folder) {
   meta.append(
     el('span', {}, counts.groups + ' 个分组'),
     el('span', {}, '·'),
-    el('span', {}, counts.total + ' 张图片')
+    el('span', {}, counts.total + ' 项内容')
   );
 
   card.append(top, el('div', { class: 'folder-name' }, folder.name), meta);
@@ -2621,7 +2872,7 @@ async function deleteFolder(folder) {
   const gs = groupsOf(folder.id);
   const count = state.items.filter(i => gs.some(g => g.id === i.group)).length;
   if (count) {
-    toast('「' + folder.name + '」里还有 ' + count + ' 张图片，先把图片移走或删除再删文件夹', 'error');
+    toast('「' + folder.name + '」里还有 ' + count + ' 项内容，先把内容移走或删除再删文件夹', 'error');
     return;
   }
   const ok = await confirmDialog({
@@ -2959,7 +3210,7 @@ async function setDone(items, done) {
     item.done = done;
     updateCardDoneUI(item);
   }
-  pushUndo(done ? '标记完成 ' + list.length + ' 张' : '取消完成 ' + list.length + ' 张',
+  pushUndo(done ? '标记完成 ' + list.length + ' 项' : '取消完成 ' + list.length + ' 项',
     async () => {
       for (const p of prev) {
         p.item.done = p.done;
@@ -2999,7 +3250,7 @@ function openMoveModal(items) {
   if (!list.length) { toast('先勾选要移动的图片', 'error'); return; }
   pendingGroupMove = list;
   const folderName = folderById(state.folder).name;
-  $('#move-sub').textContent = '把 ' + list.length + ' 张图片移动到「' + folderName + '」里的：';
+  $('#move-sub').textContent = '把 ' + list.length + ' 项内容移动到「' + folderName + '」里的：';
 
   const box = $('#move-list');
   box.replaceChildren();
@@ -3140,9 +3391,13 @@ function showImageMenu(item, items, x, y) {
   closeFolderMenu();
   closeGroupMenu();
   const menu = el('div', { class: 'ctx-menu', role: 'menu' });
+  const doc = isDoc(item);
 
-  const preview = el('button', { type: 'button', role: 'menuitem' }, '预览');
-  preview.addEventListener('click', () => { closeImageMenu(); openLightbox(item.id); });
+  const preview = el('button', { type: 'button', role: 'menuitem' }, doc ? '打开文档' : '预览');
+  preview.addEventListener('click', () => {
+    closeImageMenu();
+    if (doc) openDocPanel(item.id); else openLightbox(item.id);
+  });
 
   const edit = el('button', { type: 'button', role: 'menuitem' }, '编辑 / 裁剪…');
   edit.addEventListener('click', () => {
@@ -3151,7 +3406,7 @@ function showImageMenu(item, items, x, y) {
     openCrop(item.id);
   });
 
-  const fav = el('button', { type: 'button', role: 'menuitem' }, item.fav ? '取消收藏' : '收藏这张图');
+  const fav = el('button', { type: 'button', role: 'menuitem' }, item.fav ? '取消收藏' : (doc ? '收藏这个文档' : '收藏这张图'));
   fav.addEventListener('click', () => { closeImageMenu(); toggleItemFav(item); });
 
   const moveFolder = el('button', { type: 'button', role: 'menuitem' }, '移动到文件夹…');
@@ -3167,13 +3422,21 @@ function showImageMenu(item, items, x, y) {
   });
 
   const del = el('button', { type: 'button', class: 'danger', role: 'menuitem' },
-    items.length > 1 ? '删除选中的 ' + items.length + ' 张' : '删除这张');
+    items.length > 1 ? '删除选中的 ' + items.length + ' 项' : (doc ? '删除这个文档' : '删除这张'));
   del.addEventListener('click', () => {
     closeImageMenu();
     deleteItems(items);
   });
 
-  menu.append(preview, edit, fav, moveFolder, moveGroup, del);
+  if (doc) {
+    const copyDoc = el('button', { type: 'button', role: 'menuitem' }, '复制文档内容');
+    copyDoc.addEventListener('click', () => { closeImageMenu(); copyDocText(item); });
+    const saveDoc = el('button', { type: 'button', role: 'menuitem' }, '下载 .md 文件');
+    saveDoc.addEventListener('click', () => { closeImageMenu(); downloadDoc(item); });
+    menu.append(preview, copyDoc, saveDoc, fav, moveFolder, moveGroup, del);
+  } else {
+    menu.append(preview, edit, fav, moveFolder, moveGroup, del);
+  }
   document.body.append(menu);
   imageCtxMenu = menu;
 
@@ -3199,8 +3462,11 @@ function buildCard(item) {
   if (state.selected.has(item.id)) card.classList.add('selected');
   if (item.fav) card.classList.add('fav');
   if (item.done) card.classList.add('done');
+  const doc = isDoc(item);
 
-  const img = el('img', { src: getUrl(item), alt: item.name || '图片', loading: 'lazy', draggable: 'false' });
+  const thumbInner = doc
+    ? buildDocThumb(item)
+    : el('img', { src: getUrl(item), alt: item.name || '图片', loading: 'lazy', draggable: 'false' });
   const check = el('label', { class: 'check', title: item.done ? '取消完成' : '标记为已完成' });
   const checkbox = el('input', { type: 'checkbox', checked: !!item.done });
   checkbox.addEventListener('change', () => setDone([item], checkbox.checked));
@@ -3210,18 +3476,22 @@ function buildCard(item) {
   check.append(checkbox, mark);
 
   const tools = el('div', { class: 'thumb-tools' });
-  const btnCopy = el('button', { type: 'button' }, '复制图');
-  btnCopy.addEventListener('click', e => { e.stopPropagation(); copyImage(item); });
+  const btnCopy = el('button', { type: 'button' }, doc ? '复制文本' : '复制图');
+  btnCopy.addEventListener('click', e => {
+    e.stopPropagation();
+    if (doc) copyDocText(item); else copyImage(item);
+  });
   tools.append(btnCopy);
 
   const thumb = el('div', {
-    class: 'thumb',
+    class: 'thumb' + (doc ? ' is-doc' : ''),
     title: state.manage
-      ? (state.selected.has(item.id) ? '点击取消选中' : '点击选中这张图')
-      : '点击查看大图'
-  }, img, check, tools);
+      ? (state.selected.has(item.id) ? '点击取消选中' : (doc ? '点击选中这个文档' : '点击选中这张图'))
+      : (doc ? '点击查看文档' : '点击查看大图')
+  }, thumbInner, check, tools);
   thumb.addEventListener('click', () => {
     if (state.manage) toggleSelect(item.id, !state.selected.has(item.id));
+    else if (doc) openDocPanel(item.id);
     else openLightbox(item.id);
   });
   thumb.addEventListener('contextmenu', e => {
@@ -3315,7 +3585,302 @@ function toggleSelect(id, on) {
   $('#btn-select-all').textContent = allSelected ? '取消全选' : '全选';
 }
 
-/* ================= 添加图片 ================= */
+/* ================= 文档（Markdown） ================= */
+const docCache = new Map();
+const DOC_MAX_BYTES = 20 * 1024 * 1024;
+const DOC_EXT_RE = /\.(md|markdown|mdown|mkd|mdx|txt)$/i;
+
+function buildDocThumb(item) {
+  const wrap = el('div', { class: 'doc-thumb' });
+  const paper = el('div', { class: 'doc-paper' });
+  const badge = el('span', { class: 'doc-badge' }, 'MARKDOWN');
+  const title = el('div', { class: 'doc-title' }, (item.name || '').trim() || '未命名文档');
+  const excerpt = el('div', { class: 'doc-excerpt' }, '正在读取…');
+  paper.append(badge, title, excerpt);
+  wrap.append(paper);
+  docData(item).then(data => {
+    if (!wrap.isConnected) return;
+    if (!(item.name || '').trim() && data.heading) title.textContent = data.heading;
+    let plain = data.plain || '';
+    if (data.heading && plain.startsWith(data.heading)) plain = plain.slice(data.heading.length).trim();
+    excerpt.textContent = plain ? plain.slice(0, 260) : '（空文档）';
+  }).catch(() => { excerpt.textContent = ''; });
+  return wrap;
+}
+
+async function docData(item) {
+  const cached = docCache.get(item.id);
+  if (cached) return cached;
+  let text = '';
+  try { text = await item.blob.text(); } catch (err) { text = ''; }
+  const data = {
+    text,
+    html: renderMarkdown(text),
+    plain: docPlainFromMarkdown(text),
+    heading: docFirstHeading(text)
+  };
+  docCache.set(item.id, data);
+  return data;
+}
+
+function docPlainFromMarkdown(md) {
+  return String(md || '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/~~~[\s\S]*?~~~/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s*>\s?/gm, '')
+    .replace(/^\s*\|?[\s:|-]+\|[\s:|-]*$/gm, ' ')
+    .replace(/\|/g, ' ')
+    .replace(/^\s*([-*+]|\d+\.)\s+/gm, '')
+    .replace(/^\s*\[[ xX]\]\s*/gm, '')
+    .replace(/[*_~]{1,3}/g, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function docFirstHeading(md) {
+  const m = /^\s{0,3}#{1,6}\s+(.+)$/m.exec(String(md || ''));
+  return m ? docPlainFromMarkdown(m[1]).slice(0, 100) : '';
+}
+
+function safeHref(url) {
+  const u = String(url || '').trim();
+  if (/^(https?:\/\/|mailto:|#)/i.test(u)) return u;
+  if (/^\/(?!\/)/.test(u)) return u;
+  return '';
+}
+
+function renderInlineMarkdown(raw) {
+  let t = esc(raw);
+  const codes = [];
+  t = t.replace(/`([^`]+)`/g, (m, c) => {
+    codes.push(c);
+    return '\u0000' + (codes.length - 1) + '\u0000';
+  });
+  t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g, (m, alt, src) =>
+    '<span class="md-img">🖼 ' + (alt || src) + '</span>');
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g, (m, text, url) => {
+    const href = safeHref(url);
+    return href ? '<a href="' + href + '" target="_blank" rel="noreferrer noopener">' + text + '</a>' : text;
+  });
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  t = t.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  t = t.replace(/(^|[^_])_([^_\n]+)_/g, '$1<em>$2</em>');
+  t = t.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  t = t.replace(/\u0000(\d+)\u0000/g, (m, i) => '<code>' + codes[Number(i)] + '</code>');
+  return t;
+}
+
+function buildListTree(items) {
+  const root = [];
+  const stack = [{ indent: null, list: root }];
+  for (const it of items) {
+    let top = stack[stack.length - 1];
+    if (top.indent === null) top.indent = it.indent;
+    while (stack.length > 1 && it.indent < stack[stack.length - 1].indent) stack.pop();
+    top = stack[stack.length - 1];
+    if (it.indent > top.indent) {
+      const parentItem = top.list[top.list.length - 1];
+      if (parentItem) {
+        parentItem.children = parentItem.children || [];
+        stack.push({ indent: it.indent, list: parentItem.children });
+        top = stack[stack.length - 1];
+      } else {
+        top.indent = it.indent;
+      }
+    }
+    top.list.push({ ordered: it.ordered, text: it.text, children: [] });
+  }
+  return root;
+}
+
+function renderListTree(nodes) {
+  let html = '';
+  let tag = '';
+  for (const node of nodes) {
+    const t = node.ordered ? 'ol' : 'ul';
+    if (t !== tag) {
+      if (tag) html += '</' + tag + '>';
+      html += '<' + t + '>';
+      tag = t;
+    }
+    let text = renderInlineMarkdown(node.text).replace(/\n/g, '<br>');
+    text = text.replace(/^\[([ xX])\]\s+/, (m, c) =>
+      '<span class="md-task">' + (c.trim() ? '☑' : '☐') + '</span> ');
+    html += '<li>' + text + (node.children && node.children.length ? renderListTree(node.children) : '') + '</li>';
+  }
+  if (tag) html += '</' + tag + '>';
+  return html;
+}
+
+function parseListBlock(lines, start) {
+  const items = [];
+  let i = start;
+  while (i < lines.length) {
+    const m = /^(\s*)([-*+]|\d+\.)\s+(.*)$/.exec(lines[i]);
+    if (!m) break;
+    const indent = m[1].replace(/\t/g, '  ').length;
+    const ordered = /\d+\./.test(m[2]);
+    let text = m[3];
+    i++;
+    while (i < lines.length && lines[i].trim() &&
+           !/^\s*([-*+]|\d+\.)\s+/.test(lines[i]) && /^\s{2,}/.test(lines[i])) {
+      text += '\n' + lines[i].trim();
+      i++;
+    }
+    items.push({ indent, ordered, text });
+  }
+  return { html: renderListTree(buildListTree(items)), next: i };
+}
+
+function renderMarkdown(md) {
+  const lines = String(md || '').replace(/\r\n?/g, '\n').split('\n');
+  let html = '';
+  let i = 0;
+  const para = [];
+  const flush = () => {
+    if (!para.length) return;
+    html += '<p>' + renderInlineMarkdown(para.join('\n')).replace(/\n/g, '<br>') + '</p>';
+    para.length = 0;
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { flush(); i++; continue; }
+
+    const fence = /^\s*(```|~~~)\s*([\w+#.-]*)\s*$/.exec(line);
+    if (fence) {
+      flush();
+      const marker = fence[1];
+      const lang = fence[2] || '';
+      const code = [];
+      i++;
+      while (i < lines.length && !new RegExp('^\\s*' + marker).test(lines[i])) {
+        code.push(lines[i]);
+        i++;
+      }
+      i++;
+      const text = code.join('\n');
+      html += '<div class="md-code"><div class="md-code-bar"><span>' + esc(lang || 'code') + '</span>' +
+        '<button type="button" class="md-copy" data-code="' + esc(encodeURIComponent(text)) + '">复制</button></div>' +
+        '<pre><code>' + esc(text) + '</code></pre></div>';
+      continue;
+    }
+
+    const heading = /^\s*(#{1,6})\s+(.*)$/.exec(line);
+    if (heading) {
+      flush();
+      const lv = heading[1].length;
+      html += '<h' + lv + '>' + renderInlineMarkdown(heading[2].replace(/\s+#+\s*$/, '')) + '</h' + lv + '>';
+      i++;
+      continue;
+    }
+
+    if (/^\s*([-*_])\s*(?:\1\s*){2,}$/.test(line)) { flush(); html += '<hr>'; i++; continue; }
+
+    if (/^\s*>/.test(line)) {
+      flush();
+      const quote = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) {
+        quote.push(lines[i].replace(/^\s*>\s?/, ''));
+        i++;
+      }
+      html += '<blockquote>' + renderMarkdown(quote.join('\n')) + '</blockquote>';
+      continue;
+    }
+
+    if (/^\s*\|/.test(line) && i + 1 < lines.length &&
+        /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i + 1]) && /-/.test(lines[i + 1])) {
+      flush();
+      const splitRow = l => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+      const header = splitRow(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && /\|/.test(lines[i]) && lines[i].trim()) {
+        rows.push(splitRow(lines[i]));
+        i++;
+      }
+      html += '<table><thead><tr>' + header.map(c => '<th>' + renderInlineMarkdown(c) + '</th>').join('') +
+        '</tr></thead><tbody>' +
+        rows.map(r => '<tr>' + header.map((_, ci) => '<td>' + renderInlineMarkdown(r[ci] || '') + '</td>').join('') + '</tr>').join('') +
+        '</tbody></table>';
+      continue;
+    }
+
+    if (/^\s*([-*+]|\d+\.)\s+/.test(line)) {
+      flush();
+      const parsed = parseListBlock(lines, i);
+      html += parsed.html;
+      i = parsed.next;
+      continue;
+    }
+
+    para.push(line);
+    i++;
+  }
+  flush();
+  return html;
+}
+
+function docDisplayName(item, data) {
+  const name = (item && item.name || '').trim();
+  if (name) return name;
+  if (data && data.heading) return data.heading;
+  return '未命名文档';
+}
+
+async function openDocPanel(id) {
+  const item = state.items.find(i => i.id === id);
+  if (!item || !isDoc(item)) return;
+  state.docId = id;
+  const panel = $('#doc-panel');
+  panel.classList.add('open');
+  panel.setAttribute('aria-hidden', 'false');
+  $('#doc-panel-title').textContent = docDisplayName(item, null);
+  $('#doc-panel-sub').textContent = fmtDate(item.created, 'long') + ' · ' + fmtSize(item.blob.size) + ' · ' + groupById(item.group).name;
+  $('#doc-panel-body').innerHTML = '<div class="doc-panel-empty">正在读取文档…</div>';
+  const data = await docData(item);
+  if (state.docId !== id) return;
+  $('#doc-panel-title').textContent = docDisplayName(item, data);
+  $('#doc-panel-body').innerHTML = data.html || '<div class="doc-panel-empty">这个文档是空的</div>';
+  $('#doc-panel-body').scrollTop = 0;
+}
+
+function closeDocPanel() {
+  if (!state.docId && !$('#doc-panel').classList.contains('open')) return;
+  state.docId = null;
+  const panel = $('#doc-panel');
+  panel.classList.remove('open');
+  panel.setAttribute('aria-hidden', 'true');
+}
+
+async function copyDocText(item) {
+  try {
+    const data = await docData(item);
+    await withTimeout(navigator.clipboard.writeText(data.text), 10000);
+    toast('已复制文档内容，可直接粘贴', 'success');
+  } catch (err) {
+    toast('复制文档失败：' + err.message, 'error');
+  }
+}
+
+async function downloadDoc(item) {
+  try {
+    const data = await docData(item);
+    const blob = new Blob([data.text], { type: 'text/markdown;charset=utf-8' });
+    download(blob, safeName(item.name || data.heading || '文档', '文档') + '.md');
+    toast('已下载 Markdown 文件', 'success');
+  } catch (err) {
+    toast('下载失败：' + err.message, 'error');
+  }
+}
+
+/* ================= 添加图片 / 文档 ================= */
 const IMAGE_MIME_BY_EXT = {
   png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp',
   gif: 'image/gif', bmp: 'image/bmp', avif: 'image/avif', heic: 'image/heic',
@@ -3353,8 +3918,35 @@ function sniffImageMime(bytes) {
   return '';
 }
 
-async function normalizeImageFile(file) {
-  if (!file) return null;
+function isDocFile(file) {
+  if (!file) return false;
+  const type = String(file.type || '').toLowerCase();
+  if (type === 'text/markdown' || type === 'text/x-markdown') return true;
+  return DOC_EXT_RE.test(String(file.name || ''));
+}
+
+async function normalizeDocFile(file) {
+  if (!isDocFile(file)) return null;
+  if (!file.size) return null;
+  if (file.size > DOC_MAX_BYTES) {
+    toast('文档「' + (file.name || '未命名') + '」超过 20 MB，已跳过', 'error');
+    return null;
+  }
+  let text = '';
+  try {
+    text = await file.text();
+  } catch (err) {
+    return null;
+  }
+  const base = stripExt(file.name || '') || '未命名文档';
+  try {
+    return new File([text], base + '.md', { type: 'text/markdown', lastModified: file.lastModified || Date.now() });
+  } catch (err) {
+    return null;
+  }
+}
+
+async function normalizeImageFile(file) {  if (!file) return null;
   if (file.type && file.type.startsWith('image/')) return file;
   let mime = imageMimeFromName(file.name);
   if (!mime) {
@@ -3415,23 +4007,33 @@ async function addFiles(fileList, options = {}) {
     }
   }
 
-  const files = Array.from(fileList || []).filter(f => f && f.type && f.type.startsWith('image/'));
+  const files = [];
+  for (const raw of Array.from(fileList || [])) {
+    if (!raw) continue;
+    const docFile = await normalizeDocFile(raw);
+    if (docFile) { files.push(docFile); continue; }
+    const image = await normalizeImageFile(raw);
+    if (image) files.push(image);
+  }
   if (!files.length) {
-    toast('没有找到图片文件（仅支持图片）', 'error');
+    toast('没有找到可导入的文件（支持图片和 .md 文档）', 'error');
     return { added: 0 };
   }
 
   let added = 0;
+  let addedDocs = 0;
   const addedItems = [];
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
+    const docFile = isDocFile(file);
     if (i % 5 === 0 && $('#busy').classList.contains('show')) {
-      $('#busy-text').textContent = '正在保存图片 ' + (i + 1) + ' / ' + files.length + '…';
+      $('#busy-text').textContent = '正在保存' + (docFile ? '文档 ' : '图片 ') + (i + 1) + ' / ' + files.length + '…';
       await sleep(0);
     }
-    const generic = /^(image|blob|clipboard|past)/i.test(file.name || '') || !file.name;
+    const generic = !docFile && (/^(image|blob|clipboard|past)/i.test(file.name || '') || !file.name);
     const item = {
       id: uid(),
+      kind: docFile ? 'doc' : 'image',
       name: generic ? '' : stripExt(file.name).slice(0, 100),
       note: '',
       blob: file,
@@ -3445,13 +4047,14 @@ async function addFiles(fileList, options = {}) {
       state.items.push(item);
       addedItems.push(item);
       added++;
+      if (docFile) addedDocs++;
     } catch (err) {
       console.error(err);
     }
   }
 
   if (!added) {
-    toast('图片保存失败，请检查浏览器存储权限', 'error');
+    toast('文件保存失败，请检查浏览器存储权限', 'error');
     return { added: 0 };
   }
 
@@ -3477,7 +4080,10 @@ async function addFiles(fileList, options = {}) {
     sortItems();
     render();
   };
-  pushUndo('添加 ' + added + ' 张图片', undoAdd, redoAdd);
+  const addedLabel = addedDocs
+    ? (addedDocs === added ? added + ' 个文档' : added + ' 项（' + (added - addedDocs) + ' 张图片 + ' + addedDocs + ' 个文档）')
+    : added + ' 张图片';
+  pushUndo('添加 ' + addedLabel, undoAdd, redoAdd);
 
   state.groupMap[targetFolderId] = targetGroupId;
   sortItems();
@@ -3485,6 +4091,7 @@ async function addFiles(fileList, options = {}) {
   render();
   return {
     added,
+    addedDocs,
     folderId: targetFolderId,
     groupId: targetGroupId,
     folderName: folder ? folder.name : '',
@@ -3534,7 +4141,7 @@ function updateDropOverlay(event) {
     drop.innerHTML = '松开鼠标，添加到「' + esc(folder.name) + '」<small>也可以拖到某个文件夹卡片上</small>';
   } else {
     const group = currentGroup();
-    drop.innerHTML = '松开鼠标，添加到「' + esc(group ? group.name : '当前分组') + '」<small>支持多张图片或整个文件夹</small>';
+    drop.innerHTML = '松开鼠标，添加到「' + esc(group ? group.name : '当前分组') + '」<small>支持图片、.md 文档或整个文件夹</small>';
   }
   $$('.folder-card.drop-target').forEach(card => {
     card.classList.toggle('drop-target', fromCard && card.dataset.id === targetFolderId);
@@ -3552,7 +4159,7 @@ async function walkDropEntry(entry, files, stats) {
       stats.skipped++;
       return;
     }
-    const normalized = await normalizeImageFile(file);
+    const normalized = (await normalizeDocFile(file)) || (await normalizeImageFile(file));
     if (!normalized) { stats.skipped++; return; }
     if (files.length >= DROP_MAX_FILES || stats.bytes + normalized.size > DROP_MAX_BYTES) {
       stats.limitHit = true;
@@ -3561,7 +4168,7 @@ async function walkDropEntry(entry, files, stats) {
     files.push(normalized);
     stats.bytes += normalized.size;
     if (files.length % 5 === 0 && $('#busy').classList.contains('show')) {
-      $('#busy-text').textContent = '正在读取图片 ' + files.length + ' 张…';
+      $('#busy-text').textContent = '正在读取文件 ' + files.length + ' 个…';
       await sleep(0);
     }
     return;
@@ -3603,7 +4210,7 @@ async function collectDropFiles(dataTransfer) {
     for (const entry of entries) await walkDropEntry(entry, files, stats);
   } else {
     for (const file of Array.from(dataTransfer.files || [])) {
-      const normalized = await normalizeImageFile(file);
+      const normalized = (await normalizeDocFile(file)) || (await normalizeImageFile(file));
       if (!normalized) { stats.skipped++; continue; }
       if (files.length >= DROP_MAX_FILES || stats.bytes + normalized.size > DROP_MAX_BYTES) {
         stats.limitHit = true;
@@ -3712,21 +4319,23 @@ async function collectDropUrlImages(dataTransfer) {
 }
 
 async function handleExternalDrop(dataTransfer, folderId) {
-  await withBusy('正在读取拖入的图片…', async () => {
+  await withBusy('正在读取拖入的文件…', async () => {
     try {
       const { files, stats } = await collectDropFiles(dataTransfer);
-      let images = files;
-      if (!images.length) images = await collectDropUrlImages(dataTransfer);
-      if (!images.length) {
-        toast('没有识别到图片。微信里的图片请直接拖图片本身；如果是链接，请先另存为文件再拖入。', 'error');
+      let list = files;
+      if (!list.length) list = await collectDropUrlImages(dataTransfer);
+      if (!list.length) {
+        toast('没有识别到图片或 Markdown 文档。微信里的图片请直接拖图片本身；如果是链接，请先另存为文件再拖入。', 'error');
         return;
       }
-      $('#busy-text').textContent = '正在保存 ' + images.length + ' 张图片…';
-      await addFiles(images, { folderId });
+      const docCount = list.filter(isDocFile).length;
+      const imgCount = list.length - docCount;
+      $('#busy-text').textContent = '正在保存 ' + (docCount && !imgCount ? docCount + ' 个文档…' : list.length + ' 个文件…');
+      await addFiles(list, { folderId });
       if (stats.limitHit) {
-        toast('图片较多，只导入了前 ' + images.length + ' 张', 'error');
+        toast('文件较多，只导入了前 ' + list.length + ' 个', 'error');
       } else if (stats.skipped) {
-        toast('已跳过 ' + stats.skipped + ' 个非图片文件', 'info');
+        toast('已跳过 ' + stats.skipped + ' 个不支持的文件', 'info');
       }
     } catch (err) {
       console.error(err);
@@ -3754,10 +4363,11 @@ function requireTargets() {
 function buildText(list) {
   const lines = [];
   const groupName = exportLabelForList(list);
-  lines.push('图记 · ' + groupName + ' · ' + fmtDate(Date.now(), 'day') + '（共 ' + list.length + ' 张）');
+  const unit = countUnit(list);
+  lines.push('图记 · ' + groupName + ' · ' + fmtDate(Date.now(), 'day') + '（共 ' + list.length + ' ' + unit + '）');
   lines.push('');
   list.forEach((item, i) => {
-    lines.push((i + 1) + '. ' + ((item.name || '').trim() || '未命名') + (item.done ? '（已完成）' : ''));
+    lines.push((i + 1) + '. ' + ((item.name || '').trim() || (isDoc(item) ? '未命名文档' : '未命名')) + (item.done ? '（已完成）' : ''));
     const note = (item.note || '').trim();
     if (note) lines.push('   备注：' + note.replace(/\n/g, '\n    '));
   });
@@ -3777,7 +4387,7 @@ function buildHtml(list) {
   }).join('');
   return '<div style="font-family:\'Microsoft YaHei UI\',\'PingFang SC\',sans-serif;color:#111827;font-size:14px;line-height:1.7;">' +
     '<div style="font-size:17px;font-weight:700;margin-bottom:8px;">图记 · ' + fmtDate(Date.now(), 'day') +
-    ' <span style="color:#6b7280;font-weight:400;font-size:13px;">共 ' + list.length + ' 张</span></div>' +
+    ' <span style="color:#6b7280;font-weight:400;font-size:13px;">共 ' + list.length + ' ' + countUnit(list) + '</span></div>' +
     '<ol style="padding-left:20px;margin:0;">' + lis + '</ol></div>';
 }
 
@@ -3792,7 +4402,7 @@ async function copyText(list) {
     } else {
       await withTimeout(navigator.clipboard.writeText(text), 10000);
     }
-    toast('已复制 ' + list.length + ' 张的文字，可直接粘贴', 'success');
+    toast('已复制 ' + list.length + ' ' + countUnit(list) + '的文字，可直接粘贴', 'success');
   } catch (err) {
     toast('复制文字失败：' + err.message, 'error');
   }
@@ -3812,6 +4422,7 @@ async function toPngBlob(blob) {
 }
 
 async function copyImage(item) {
+  if (isDoc(item)) { await copyDocText(item); return; }
   await withBusy('正在准备图片…', async () => {
     try {
       const png = toPngBlob(item.blob);
@@ -3824,6 +4435,8 @@ async function copyImage(item) {
 }
 
 async function copyRich(list) {
+  list = list.filter(isImageItem);
+  if (!list.length) { toast('选中的都是文档，请用右键「复制文档内容」或「下载 .md 文件」', 'error'); return; }
   await withBusy('正在生成分享图…', async () => {
     const text = buildText(list);
     const pngPromise = sheetBlob(list, 'image/png');
@@ -3848,6 +4461,8 @@ async function copyRich(list) {
 }
 
 async function saveSheet(list) {
+  list = list.filter(isImageItem);
+  if (!list.length) { toast('选中的都是文档，文档不能保存成长图', 'error'); return; }
   await withBusy('正在生成长图…', async () => {
     try {
       const blob = await sheetBlob(list, 'image/jpeg', 0.92);
@@ -3860,6 +4475,8 @@ async function saveSheet(list) {
 }
 
 async function systemShare(list) {
+  list = list.filter(isImageItem);
+  if (!list.length) { toast('选中的都是文档，文档不能按图片分享', 'error'); return; }
   if (!navigator.share || !navigator.canShare) {
     toast('当前浏览器不支持系统分享，请用「复制图文」', 'error');
     return;
@@ -4437,6 +5054,8 @@ async function toShareJpeg(blob) {
 }
 
 async function exportSharePage(list) {
+  list = list.filter(isImageItem);
+  if (!list.length) { toast('选中的都是文档，分享网页只包含图片；文档可用「导出 ZIP」', 'error'); return; }
   await withBusy('正在生成分享网页…', async () => {
     try {
       const payload = [];
@@ -4628,6 +5247,8 @@ function buildPdf(pages) {
 }
 
 async function exportPdf(list) {
+  list = list.filter(isImageItem);
+  if (!list.length) { toast('选中的都是文档，PDF 只包含图片；文档可用「导出 ZIP」', 'error'); return; }
   await withBusy('正在生成 PDF…', async () => {
     try {
       const groupName = exportLabelForList(list);
@@ -4738,28 +5359,44 @@ async function exportZip(list) {
     try {
       const files = [];
       const used = new Set();
+      const docs = list.filter(isDoc);
+      const images = list.filter(isImageItem);
       for (let i = 0; i < list.length; i++) {
         const item = list[i];
         const base = String(i + 1).padStart(2, '0') + '_' + safeName((item.name || '').trim(), '未命名');
-        let fileName = '图片/' + base + '.' + extFor(item.blob);
-        let n = 2;
-        while (used.has(fileName)) { fileName = '图片/' + base + '-' + n + '.' + extFor(item.blob); n++; }
-        used.add(fileName);
-        files.push({ name: fileName, data: new Uint8Array(await item.blob.arrayBuffer()) });
+        if (isDoc(item)) {
+          let fileName = '文档/' + base + '.md';
+          let n = 2;
+          while (used.has(fileName)) { fileName = '文档/' + base + '-' + n + '.md'; n++; }
+          used.add(fileName);
+          const data = await docData(item);
+          files.push({ name: fileName, data: new TextEncoder().encode(data.text) });
+        } else {
+          let fileName = '图片/' + base + '.' + extFor(item.blob);
+          let n = 2;
+          while (used.has(fileName)) { fileName = '图片/' + base + '-' + n + '.' + extFor(item.blob); n++; }
+          used.add(fileName);
+          files.push({ name: fileName, data: new Uint8Array(await item.blob.arrayBuffer()) });
+        }
       }
 
       files.push({ name: '备注.txt', data: new TextEncoder().encode(buildText(list)) });
 
-      try {
-        const sheet = await sheetBlob(list, 'image/jpeg', 0.92);
-        files.push({ name: '分享长图.jpg', data: new Uint8Array(await sheet.arrayBuffer()) });
-      } catch (err) {
-        console.warn('长图生成失败，ZIP 仍包含图片和备注', err);
+      if (images.length) {
+        try {
+          const sheet = await sheetBlob(images, 'image/jpeg', 0.92);
+          files.push({ name: '分享长图.jpg', data: new Uint8Array(await sheet.arrayBuffer()) });
+        } catch (err) {
+          console.warn('长图生成失败，ZIP 仍包含图片和备注', err);
+        }
       }
 
       const label = exportLabelForList(list);
       download(makeZip(files), '图记_' + safeName(label, '分享') + '_' + dateStamp() + '.zip');
-      toast('已导出 ' + list.length + ' 张图片 + 备注 + 分享长图', 'success');
+      const parts = [];
+      if (images.length) parts.push(images.length + ' 张图片');
+      if (docs.length) parts.push(docs.length + ' 个文档');
+      toast('已导出 ' + parts.join(' + ') + ' + 备注' + (images.length ? ' + 分享长图' : ''), 'success');
     } catch (err) {
       console.error(err);
       toast(err.message || '导出失败', 'error');
@@ -4984,7 +5621,7 @@ function renderLightbox() {
 }
 
 function lightboxStep(delta) {
-  const list = visibleItems();
+  const list = visibleItems().filter(isImageItem);
   if (!list.length) return;
   const index = list.findIndex(i => i.id === state.lbId);
   if (index < 0) return;
@@ -5350,6 +5987,7 @@ function setCropControlsEnabled(on) {
 async function openCrop(itemId) {
   const item = state.items.find(i => i.id === (itemId || state.lbId));
   if (!item) return;
+  if (isDoc(item)) { toast('文档不能裁剪，图片才可以', 'error'); return; }
   if (cropOpen()) closeCrop();
   if (!$('#lightbox').classList.contains('open') || state.lbId !== item.id) openLightbox(item.id);
 
@@ -5512,12 +6150,13 @@ async function saveCrop() {
 
 /* ================= 删除 ================= */
 async function deleteItems(list, options = {}) {
-  if (!list || !list.length) { toast('没有可删除的图片', 'error'); return; }
+  if (!list || !list.length) { toast('没有可删除的内容', 'error'); return; }
+  const hasDoc = list.some(isDoc);
 
   if (options.confirm !== false) {
     const ok = await confirmDialog({
-      title: '删除 ' + list.length + ' 张图片？',
-      message: '图片和备注会从本机删除，之后按 Ctrl+Z 可以找回。',
+      title: '删除 ' + list.length + ' ' + countUnit(list) + '？',
+      message: (hasDoc ? '内容和备注' : '图片和备注') + '会从本机删除，之后按 Ctrl+Z 可以找回。',
       okText: '删除',
       danger: true
     });
@@ -5527,9 +6166,11 @@ async function deleteItems(list, options = {}) {
   const backup = list.map(item => ({ ...item }));
   const removeAgain = async () => {
     if (state.lbId && backup.some(item => item.id === state.lbId)) closeLightbox();
+    if (state.docId && backup.some(item => item.id === state.docId)) closeDocPanel();
     for (const item of backup) {
       try { await dbDelete(item.id); } catch (err) { console.error(err); }
       releaseUrl(item.id);
+      docCache.delete(item.id);
       state.selected.delete(item.id);
       state.items = state.items.filter(x => x.id !== item.id);
     }
@@ -5545,7 +6186,7 @@ async function deleteItems(list, options = {}) {
     sortItems();
     render();
   };
-  pushUndo('删除 ' + backup.length + ' 张', restoreItems, removeAgain);
+  pushUndo('删除 ' + backup.length + ' ' + countUnit(backup), restoreItems, removeAgain);
   await removeAgain();
 }
 
@@ -5560,8 +6201,9 @@ function openShare() {
     toast(state.items.length ? '当前筛选下没有图片' : '请先添加图片', 'error');
     return;
   }
-  const scope = state.selected.size ? '已选的 ' + list.length + ' 张' : state.search.trim() ? '筛选结果（' + list.length + ' 张）' : '全部 ' + list.length + ' 张';
-  $('#share-sub').textContent = scope + '：可导出 PDF / 分享网页，也可拼成一张长图直接粘贴。';
+  const unit = countUnit(list);
+  const scope = state.selected.size ? '已选的 ' + list.length + ' ' + unit : state.search.trim() ? '筛选结果（' + list.length + ' ' + unit + '）' : '全部 ' + list.length + ' ' + unit;
+  $('#share-sub').textContent = scope + '：图片可导出 PDF / 分享网页 / 拼长图；文档会随「导出 ZIP」保存为 .md。';
 
   const native = $('#share-native');
   native.hidden = !(navigator.share && navigator.canShare);
@@ -5623,18 +6265,19 @@ async function buildBackupPayload() {
   for (let i = 0; i < state.items.length; i++) {
     const item = state.items[i];
     if (i % 8 === 0) {
-      $('#busy-text').textContent = '正在打包 ' + (i + 1) + ' / ' + state.items.length + ' 张…';
+      $('#busy-text').textContent = '正在打包 ' + (i + 1) + ' / ' + state.items.length + ' 项…';
       await sleep(0);
     }
     items.push({
       id: item.id,
+      kind: isDoc(item) ? 'doc' : 'image',
       name: item.name || '',
       note: item.note || '',
       created: item.created,
       fav: !!item.fav,
       done: !!item.done,
       group: item.group,
-      type: (item.blob && item.blob.type) || 'image/png',
+      type: (item.blob && item.blob.type) || (isDoc(item) ? 'text/markdown' : 'image/png'),
       data: await blobToDataURL(item.blob)
     });
   }
@@ -5759,18 +6402,19 @@ async function exportBackupBlobFallback() {
   });
   for (let i = 0; i < state.items.length; i++) {
     const item = state.items[i];
-    $('#busy-text').textContent = '正在导出 ' + (i + 1) + ' / ' + state.items.length + ' 张…';
+    $('#busy-text').textContent = '正在导出 ' + (i + 1) + ' / ' + state.items.length + ' 项…';
     const data = await blobToDataURL(item.blob);
     push({
       type: 'item',
       id: item.id,
+      kind: isDoc(item) ? 'doc' : 'image',
       name: item.name || '',
       note: item.note || '',
       created: item.created,
       fav: !!item.fav,
       done: !!item.done,
       group: item.group,
-      mime: (item.blob && item.blob.type) || 'image/png',
+      mime: (item.blob && item.blob.type) || (isDoc(item) ? 'text/markdown' : 'image/png'),
       data
     });
     if (i % 4 === 0) await sleep(0);
@@ -5778,7 +6422,7 @@ async function exportBackupBlobFallback() {
   flush();
   const blob = new Blob(parts, { type: 'application/x-ndjson;charset=utf-8' });
   download(blob, '图记备份_' + dateStamp() + '.jsonl');
-  toast('已导出 ' + state.items.length + ' 张图片（' + fmtSize(blob.size) + '），文件已开始下载', 'success');
+  toast('已导出 ' + state.items.length + ' 项（' + fmtSize(blob.size) + '），文件已开始下载', 'success');
 }
 
 async function exportBackupStream() {
@@ -5831,18 +6475,19 @@ async function exportBackupStream() {
       });
       for (let i = 0; i < state.items.length; i++) {
         const item = state.items[i];
-        $('#busy-text').textContent = '正在导出 ' + (i + 1) + ' / ' + state.items.length + ' 张…';
+        $('#busy-text').textContent = '正在导出 ' + (i + 1) + ' / ' + state.items.length + ' 项…';
         const data = await blobToDataURL(item.blob);
         await writeBackupLine(temp.writable, {
           type: 'item',
           id: item.id,
+          kind: isDoc(item) ? 'doc' : 'image',
           name: item.name || '',
           note: item.note || '',
           created: item.created,
           fav: !!item.fav,
           done: !!item.done,
           group: item.group,
-          mime: (item.blob && item.blob.type) || 'image/png',
+          mime: (item.blob && item.blob.type) || (isDoc(item) ? 'text/markdown' : 'image/png'),
           data
         });
         if (i % 4 === 0) await sleep(0);
@@ -5851,7 +6496,7 @@ async function exportBackupStream() {
       temp.closed = true;
       const file = await temp.fileHandle.getFile();
       download(file, '图记备份_' + dateStamp() + '.jsonl');
-      toast('已导出 ' + state.items.length + ' 张图片（' + fmtSize(file.size) + '），文件已开始下载', 'success');
+      toast('已导出 ' + state.items.length + ' 项（' + fmtSize(file.size) + '），文件已开始下载', 'success');
       setTimeout(() => removeTempBackup(temp), 10 * 60 * 1000);
     } catch (err) {
       console.error(err);
@@ -5875,7 +6520,7 @@ async function exportBackup() {
       const payload = await buildBackupPayload();
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json;charset=utf-8' });
       download(blob, '图记备份_' + dateStamp() + '.json');
-      toast('已导出 ' + payload.items.length + ' 张图片（' + fmtSize(blob.size) + '），文件已开始下载', 'success');
+      toast('已导出 ' + payload.items.length + ' 项（' + fmtSize(blob.size) + '），文件已开始下载', 'success');
     } catch (err) {
       console.error(err);
       toast('导出失败：' + err.message, 'error');
@@ -5962,9 +6607,10 @@ async function normalizeBackup(data) {
     if (seenItems.has(id)) continue;
     seenItems.add(id);
     const blob = await rawItemBlob(raw);
-    if (!blob || !blob.size) throw new Error('有图片数据为空，备份文件可能已损坏');
+    if (!blob || !blob.size) throw new Error('有文件数据为空，备份文件可能已损坏');
     items.push({
       id,
+      kind: backupItemKind(raw, blob),
       name: String(raw.name || '').slice(0, 100),
       note: String(raw.note || ''),
       created: Number(raw.created) || Date.now(),
@@ -6057,6 +6703,7 @@ async function importBackupAdditive(data) {
   const plan = planImportedStructure(normalized);
   const importedItems = normalized.items.map(raw => ({
     id: uid(),
+    kind: raw.kind || backupItemKind(raw, raw.blob),
     name: raw.name,
     note: raw.note,
     created: raw.created,
@@ -6147,7 +6794,7 @@ async function importBackupJsonlStream(file) {
 
       processed += 1;
       if (processed % 4 === 0) {
-        $('#busy-text').textContent = '正在导入 ' + processed + ' 张图片…';
+        $('#busy-text').textContent = '正在导入 ' + processed + ' 项…';
         await sleep(0);
       }
 
@@ -6156,6 +6803,7 @@ async function importBackupJsonlStream(file) {
         if (!blob) { skipped += 1; continue; }
         batch.push({
           id: uid(),
+          kind: backupItemKind(raw, blob),
           name: String(raw.name || '').slice(0, 100),
           note: String(raw.note || ''),
           created: Number(raw.created) || Date.now(),
@@ -6187,7 +6835,7 @@ async function importBackupJsonlStream(file) {
   }
 
   if (failure) {
-    throw new Error('导入中途停止，已完成 ' + importedItems.length + ' 张图片；' + failure.message);
+    throw new Error('导入中途停止，已完成 ' + importedItems.length + ' 项；' + failure.message);
   }
   return {
     folders: plan.importedFolders,
@@ -6231,7 +6879,7 @@ async function handleJsonlBackupFile(file) {
   await withBusy('正在追加导入备份…', async () => {
     try {
       const n = await importBackupJsonlStream(file);
-      let message = '已追加：' + n.folders.length + ' 个文件夹 / ' + n.groups.length + ' 个分组 / ' + n.items.length + ' 张图片';
+      let message = '已追加：' + n.folders.length + ' 个文件夹 / ' + n.groups.length + ' 个分组 / ' + n.items.length + ' 项';
       if (n.renamed) message += '；' + n.renamed + ' 个同名文件夹已加「导入」后缀';
       if (n.skipped) message += '；跳过 ' + n.skipped + ' 条损坏记录';
       toast(message, 'success');
@@ -6288,7 +6936,7 @@ async function handleBackupFile(file) {
   await withBusy('正在追加导入备份…', async () => {
     try {
       const n = await importBackupAdditive(data);
-      let message = '已追加：' + n.folders.length + ' 个文件夹 / ' + n.groups.length + ' 个分组 / ' + n.items.length + ' 张图片';
+      let message = '已追加：' + n.folders.length + ' 个文件夹 / ' + n.groups.length + ' 个分组 / ' + n.items.length + ' 项';
       if (n.renamed) message += '；' + n.renamed + ' 个同名文件夹已加「导入」后缀';
       toast(message, 'success');
     } catch (err) {
@@ -6302,7 +6950,7 @@ async function handleBackupFile(file) {
 function bindEvents() {
   $('#btn-add').addEventListener('click', () => {
     if (state.atRoot) {
-      toast('先双击进入一个文件夹，再添加图片', 'error');
+      toast('先双击进入一个文件夹，再添加图片或文档', 'error');
       return;
     }
     $('#file-input').click();
@@ -6330,7 +6978,7 @@ function bindEvents() {
   });
   document.addEventListener('contextmenu', e => {
     if (e.defaultPrevented) return;
-    if (e.target.closest('input, textarea, select, button, a, label, img, .card, .folder-card, .ctx-menu, .app-header, .subbar, .groupbar, .selbar, .modal-mask, .lightbox, .toast, .drop, #busy')) return;
+    if (e.target.closest('input, textarea, select, button, a, label, img, .card, .folder-card, .ctx-menu, .app-header, .subbar, .groupbar, .selbar, .modal-mask, .lightbox, .toast, .drop, #busy, .doc-panel')) return;
     e.preventDefault();
     const parentId = currentCreateParentId();
     selectFolder('');
@@ -6406,6 +7054,21 @@ function bindEvents() {
     if (!btn) return;
     state.doneFilter = btn.dataset.filter;
     updateDoneFilterUI();
+    render();
+  });
+
+  // 类型筛选：图片 / 文档
+  $('#type-filter').addEventListener('change', e => {
+    const input = e.target.closest('input[data-type]');
+    if (!input) return;
+    state.types[input.dataset.type] = input.checked;
+    if (!state.types.image && !state.types.doc) {
+      input.checked = true;
+      state.types[input.dataset.type] = true;
+      toast('图片和文档至少保留一项', 'info');
+    }
+    try { localStorage.setItem('picnote-types', JSON.stringify(state.types)); } catch (err) {}
+    updateTypeFilterUI();
     render();
   });
 
@@ -6594,6 +7257,31 @@ function bindEvents() {
     if (e.target === $('#lightbox') || e.target === $('#lb-canvas')) closeLightbox();
   });
 
+  // 文档右侧栏
+  $('#doc-panel-close').addEventListener('click', closeDocPanel);
+  $('#doc-panel-copy').addEventListener('click', () => {
+    const item = state.items.find(i => i.id === state.docId);
+    if (item) copyDocText(item);
+  });
+  $('#doc-panel-download').addEventListener('click', () => {
+    const item = state.items.find(i => i.id === state.docId);
+    if (item) downloadDoc(item);
+  });
+  $('#doc-panel-body').addEventListener('click', async e => {
+    const btn = e.target.closest('.md-copy');
+    if (!btn) return;
+    let code = '';
+    try { code = decodeURIComponent(btn.dataset.code || ''); }
+    catch (err) { code = btn.dataset.code || ''; }
+    try {
+      await navigator.clipboard.writeText(code);
+      btn.textContent = '已复制';
+      setTimeout(() => { btn.textContent = '复制'; }, 1200);
+    } catch (err) {
+      toast('复制代码失败：' + err.message, 'error');
+    }
+  });
+
   // 裁剪
   $('#crop-cancel').addEventListener('click', closeCrop);
   $('#crop-save').addEventListener('click', saveCrop);
@@ -6654,6 +7342,8 @@ function bindEvents() {
       closeImageMenu();
     } else if (e.key === 'Escape' && folderCtxMenu) {
       closeFolderMenu();
+    } else if (e.key === 'Escape' && state.docId) {
+      closeDocPanel();
     } else if (e.key === 'Escape' && state.manage) {
       const tag = (e.target && e.target.tagName || '').toLowerCase();
       if (tag !== 'input' && tag !== 'textarea') setManage(false);
@@ -6684,7 +7374,7 @@ async function onPaste(e) {
 
   const files = [];
   for (const file of raw) {
-    const normalized = await normalizeImageFile(file);
+    const normalized = (await normalizeDocFile(file)) || (await normalizeImageFile(file));
     if (normalized) files.push(normalized);
   }
 
@@ -6717,6 +7407,14 @@ async function init() {
   state.sort = savedSort;
   const sortSelect = $('#sort-select');
   if (sortSelect) sortSelect.value = savedSort;
+  try {
+    const savedTypes = JSON.parse(localStorage.getItem('picnote-types') || 'null');
+    if (savedTypes && typeof savedTypes === 'object') {
+      state.types.image = savedTypes.image !== false;
+      state.types.doc = savedTypes.doc !== false;
+      if (!state.types.image && !state.types.doc) state.types.image = true;
+    }
+  } catch (err) {}
   try {
     const [items, savedGroups, savedFolders] = await Promise.all([
       dbAll(),
@@ -6818,6 +7516,7 @@ async function init() {
     toast('本地存储不可用：' + err.message, 'error');
   }
   updateDoneFilterUI();
+  updateTypeFilterUI();
   render();
   cleanupTempBackups().catch(() => {});
 }
@@ -6876,7 +7575,12 @@ window.PicNote = {
   closeCrop,
   saveCrop,
   renderSheet,
-  buildText
+  buildText,
+  openDocPanel,
+  closeDocPanel,
+  renderMarkdown,
+  docData,
+  isDoc
 };
 </script>
 </body>
